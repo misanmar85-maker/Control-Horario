@@ -40,7 +40,7 @@ header .sub{font-size:12px;color:var(--muted)}
 .kpi .l{font-size:12px;color:var(--muted)}
 .kpi .v{font-size:22px;font-weight:700;letter-spacing:-.02em;margin-top:2px;font-variant-numeric:tabular-nums}
 .kpi .s{font-size:12px;color:var(--muted);margin-top:2px}
-.pos{color:var(--ok)} .neg{color:var(--bad)}
+.pos{color:var(--ok)} .neg{color:var(--bad)} .row .neg{font-weight:600}
 .row{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px dashed var(--line);font-variant-numeric:tabular-nums}
 .row:last-child{border-bottom:0}
 .row .k{color:var(--muted)} .row.tot{font-weight:700;border-top:1px solid var(--line);border-bottom:0;margin-top:4px;padding-top:9px}
@@ -249,6 +249,7 @@ function fmtNum(n,d){
   return (neg?"-":"")+i+(dec?","+dec:"");
 }
 const eur = n => fmtNum(n,2)+"\u00a0€";
+const eurR = n => `<span class="neg">−${fmtNum(Math.abs(n),2)}\u00a0€</span>`; // importe que resta, en rojo
 const num = (n,d=1) => fmtNum(n,d);
 const r2 = n => Math.round(n*100)/100;
 const toMin = t => { if(!t) return null; const [h,m]=t.split(":").map(Number); return h*60+m; };
@@ -279,10 +280,11 @@ function banner(h){ document.getElementById("banner").innerHTML=h; }
 function monthDoc(y,m){ const k=ymKey(y,m); if(!S.months[k]) S.months[k]={dias:{}}; return S.months[k]; }
 function dayEntry(date){ const k=date.slice(0,7); return (S.months[k]&&S.months[k].dias[date])||null; }
 
+function altaF(){ return S.perfil.fechaAlta || S.perfil.fechaAntiguedad || ""; }
 function esVerano(date){ const p=S.perfil; return p.veranoOn && (p.veranoMeses||[]).map(Number).includes(+date.slice(5,7)); }
 function teorDia(date){ // horas teóricas por calendario del perfil (con jornada intensiva)
   const p=S.perfil, wd=new Date(date+"T12:00:00").getDay();
-  if(p.fechaAlta && date < p.fechaAlta) return 0;
+  if(altaF() && date < altaF()) return 0;
   const tabla = esVerano(date) ? (p.horasVerano||{}) : p.horasDia;
   return Number(tabla[wd]||0);
 }
@@ -359,7 +361,7 @@ function vacaciones(y){
   const p=S.perfil; let base=Number(p.vacBase)||25, extra=0; const ant=antiguedadAnios(y);
   if(ant!==null && p.vacAntig!==false){ if(ant>=20) extra++; if(ant>=30) extra++; }
   let derecho=base+extra, prop=1;
-  if(p.fechaAlta){ const a=new Date(p.fechaAlta+"T12:00:00"); if(a.getFullYear()===y){ const ini=new Date(y,0,1), fin=new Date(y,11,31); prop=((fin-a)/86400000+1)/((fin-ini)/86400000+1); } else if(a.getFullYear()>y) prop=0; }
+  if(altaF()){ const a=new Date(altaF()+"T12:00:00"); if(a.getFullYear()===y){ const ini=new Date(y,0,1), fin=new Date(y,11,31); prop=((fin-a)/86400000+1)/((fin-ini)/86400000+1); } else if(a.getFullYear()>y) prop=0; }
   derecho = Math.round(derecho*prop*10)/10;
   let usadas=0; const fechas=[];
   for(let m=1;m<=12;m++){ const md=S.months[ymKey(y,m)]; if(!md) continue;
@@ -402,7 +404,7 @@ function nominaMes(y,m){
   const heImporte = p.heModo==="pago" ? heHoras*precioHora*(1+(Number(p.heRecargo)||0)/100) : 0;
   // Proporción por fecha de alta
   const fM = fracServicio(`${y}-${pad(m)}-01`, finMes(y,m));
-  if(fM===0) warn.unshift(`Mes anterior a tu fecha de alta (${new Date(p.fechaAlta+"T12:00:00").toLocaleDateString("es-ES")}): no hay nómina.`);
+  if(fM===0) warn.unshift(`Mes anterior a tu fecha de alta (${new Date(altaF()+"T12:00:00").toLocaleDateString("es-ES")}): no hay nómina.`);
   else if(fM<1) warn.unshift(`Mes de alta: salario proporcional a ${Math.round(fM*daysIn(y,m))} de ${daysIn(y,m)} días naturales.`);
   const extraMes = !p.prorrata && nEx>0 && mesesEx.includes(m);
   const prorrata = p.prorrata ? extraUnit*nEx/12*fM : 0;
@@ -429,7 +431,7 @@ function nominaMes(y,m){
   const varObj = (nm.varReal!==undefined && nm.varReal!=="") ? Number(nm.varReal) : varProg;
   const varConvAnual = SB[ty][nivel]*14*pct*(Number(p.varConvPct)||0)/100;
   // Art. 48.8: proporcional a la permanencia en el año, contando desde el día 1 del mes siguiente a la incorporación
-  let fConv=1; if(p.fechaAlta){ const ay=+p.fechaAlta.slice(0,4), am=+p.fechaAlta.slice(5,7), ad=+p.fechaAlta.slice(8,10); if(ay===y) fConv=Math.max(0,12-am)/12; else if(ay>y) fConv=0; }
+  let fConv=1; if(altaF()){ const ay=+altaF().slice(0,4), am=+altaF().slice(5,7); if(ay===y) fConv=Math.max(0,12-am)/12; else if(ay>y) fConv=0; }
   const varConv = (m===9 && fM>0) ? varConvAnual*fConv : 0;
   const kmRate = KM[lastYear(KM,y)];
   const km = (Number(nm.km)||0)*kmRate;
@@ -461,7 +463,7 @@ function nominaMes(y,m){
 
 /* Fracción del periodo [ini, fin] (fechas "AAAA-MM-DD", inclusive) en la que hay relación laboral */
 function fracServicio(ini, fin){
-  const a=S.perfil.fechaAlta; if(!a || a<=ini) return 1; if(a>fin) return 0;
+  const a=altaF(); if(!a || a<=ini) return 1; if(a>fin) return 0;
   const d=s=>new Date(s+"T12:00:00").getTime();
   return (Math.round((d(fin)-d(a))/86400000)+1)/(Math.round((d(fin)-d(ini))/86400000)+1);
 }
@@ -512,7 +514,7 @@ function vInicio(){
     <div class="row" style="margin-top:6px"><span class="k">Tu calendario teórico suma</span><span>${fmtH(ya.teor)}</span></div>
     ${(()=>{ const hd=S.perfil.horasDia, lab=[1,2,3,4,5].map(d=>Number(hd[d]||0)), avg=lab.reduce((a,b)=>a+b,0)/5; const adj=ya.teor-Math.max(0,va.pend)*avg; return `<div class="row"><span class="k">Descontando vacaciones pendientes</span><span>${fmtH(adj)}</span></div>`+(adj>maxA+0.5?`<div class="alert warn" style="margin-top:8px">Aún te salen ${fmtH(adj-maxA)} por encima del máximo anual. Probablemente faltan por marcar los festivos (nacionales, autonómicos y locales). Si después de marcarlos sigue saliendo, revisa tu horario en Ajustes.</div>`:""); })()}
   </div>
-  ${!S.perfil.fechaAlta?`<div class="alert info">Completa tus datos en <b>Ajustes</b> (nivel, antigüedad, IRPF…) para que los cálculos sean los tuyos.</div>`:""}`;
+  ${!altaF()?`<div class="alert info">Completa tus datos en <b>Ajustes</b> (nivel, antigüedad, IRPF…) para que los cálculos sean los tuyos.</div>`:""}`;
 }
 
 function vHoras(){
@@ -637,9 +639,9 @@ function vNomina(){
   return `${n.warn.map(w=>`<div class="alert warn">${esc(w)}</div>`).join("")}
   <div class="kpis" style="margin-bottom:12px">
     <div class="kpi"><div class="l">Bruto estimado</div><div class="v">${eur(n.bruto)}</div><div class="s">${monthName(cur.y,cur.m)}</div></div>
-    <div class="kpi"><div class="l">Neto estimado</div><div class="v">${eur(n.neto)}</div><div class="s">${real!==null?`real ${eur(real)} (${diff>=0?"+":""}${eur(diff)})`:"añade tu neto real abajo"}</div></div>
+    <div class="kpi"><div class="l">Neto estimado</div><div class="v">${eur(n.neto)}</div><div class="s">${real!==null?`real ${eur(real)} (<span class="${diff<0?"neg":"pos"}">${diff>=0?"+":""}${eur(diff)}</span>)`:"añade tu neto real abajo"}</div></div>
   </div>
-  ${real!==null && Math.abs(diff)>5?`<div class="alert ${diff<0?"bad":"info"}">Tu neto real difiere ${eur(Math.abs(diff))} de la estimación.${diff>0&&(n.fM<1||(S.perfil.fechaAlta&&S.perfil.fechaAlta.slice(0,4)===String(cur.y)))?" En el año de alta es normal: la empresa calcula la retención solo con lo que cobras ese año, mientras que la app aplica el tipo anual a propósito.":" Revisa conceptos, horas extra, IRPF y si la empresa prorratea las pagas."}</div>`:""}
+  ${real!==null && Math.abs(diff)>5?`<div class="alert ${diff<0?"bad":"info"}">Tu neto real difiere ${eur(Math.abs(diff))} de la estimación.${diff>0&&(n.fM<1||(altaF()&&altaF().slice(0,4)===String(cur.y)))?" En el año de alta es normal: la empresa calcula la retención solo con lo que cobras ese año, mientras que la app aplica el tipo anual a propósito.":" Revisa conceptos, horas extra, IRPF y si la empresa prorratea las pagas."}</div>`:""}
   <div class="card"><h2>Devengos</h2>
     ${n.ba>0?L(`Salario base convenio (nivel ${p.nivel})`,eur(n.sb))+(n.mejora>0.005?L("Mejora voluntaria / compl. personal",eur(n.mejora)):""):L(`Salario base (nivel ${p.nivel}${Number(p.sbManual)>0?", importe manual":""})`,eur(n.sb))}
     ${n.cpe?L(`Compl. por experiencia (${Math.min(10,Number(p.cpeAnios)||0)} años)`,eur(n.cpe)):""}
@@ -658,13 +660,13 @@ function vNomina(){
     ${L("Total devengado",eur(n.bruto),"tot")}
   </div>
   <div class="card"><h2>Deducciones</h2>
-    ${L("Contingencias comunes 4,70 %",eur(n.ss.cc))}
-    ${L(`MEI ${num(n.meiT,2)} %`,eur(n.ss.mei))}
-    ${L(`Desempleo ${p.contrato==="temporal"?"1,60":"1,55"} %`,eur(n.ss.des))}
-    ${L("Formación profesional 0,10 %",eur(n.ss.fp))}
-    ${n.ss.he?L("Horas extra 4,70 %",eur(n.ss.he)):""}
-    ${L(`IRPF ${num(n.irpfPct,2)} %${n.nm.irpfPct!==undefined&&n.nm.irpfPct!==""?" (este mes)":" (tipo anual)"}`,eur(n.irpf))}
-    ${L("Total deducciones",eur(n.ssTot+n.irpf),"tot")}
+    ${L("Contingencias comunes 4,70 %",eurR(n.ss.cc))}
+    ${L(`MEI ${num(n.meiT,2)} %`,eurR(n.ss.mei))}
+    ${L(`Desempleo ${p.contrato==="temporal"?"1,60":"1,55"} %`,eurR(n.ss.des))}
+    ${L("Formación profesional 0,10 %",eurR(n.ss.fp))}
+    ${n.ss.he?L("Horas extra 4,70 %",eurR(n.ss.he)):""}
+    ${L(`IRPF ${num(n.irpfPct,2)} %${n.nm.irpfPct!==undefined&&n.nm.irpfPct!==""?" (este mes)":" (tipo anual)"}`,eurR(n.irpf))}
+    ${L("Total deducciones",eurR(n.ssTot+n.irpf),"tot")}
     ${L("Líquido a percibir",eur(n.neto),"tot")}
     <details style="margin-top:8px"><summary>Bases de cotización</summary>
       ${L("Base contingencias comunes",eur(n.baseCC))}${L("Base AT/EP, desempleo y FP",eur(n.baseAT))}
@@ -678,10 +680,10 @@ function vNomina(){
     ${vc?L("Incremento variable convenio (septiembre)",eur(vc)):""}
     ${tl?L(`Compensación teletrabajo (${td} días)`,eur(tl)):""}
     ${L("Bruto anual estimado",eur(b),"tot")}
-    ${L("Seguridad Social",eur(ss))}${L("IRPF",eur(ir))}
+    ${L("Seguridad Social",eurR(ss))}${L("IRPF",eurR(ir))}
     ${L("Neto anual estimado",eur(nt),"tot")}
     ${(()=>{ const yy=cur.y; if(yy<2026) return ""; const ya=lastYear(SB,yy-1); const base=SB[ya][Number(p.nivel)]*14*((Number(p.jornadaPct)||100)/100); const ap=base*0.015;
-      const alta=p.fechaAlta?new Date(p.fechaAlta+"T12:00:00"):null; const nuevo=alta&&alta>=new Date(2023,0,1);
+      const alta=altaF()?new Date(altaF()+"T12:00:00"):null; const nuevo=alta&&alta>=new Date(2023,0,1);
       return `<div class="row"><span class="k">Aportación de la empresa al seguro de jubilación (1,5 % del sueldo base de tabla ${yy-1})</span><span>${eur(ap)}</span></div><div class="note">No se cobra en nómina: va a un seguro colectivo (art. 67.C).${nuevo?" Como entraste en 2023 o después, la primera aportación se hace al cumplir 3 años ininterrumpidos en la empresa (y entonces se aportan todas las anualidades).":""}</div>`; })()}
     <div class="note">Suma de los 12 meses con los datos que tengas en cada uno. Para cotizar, el variable se reparte entre los 12 meses (base de cotización), aunque se cobre de una vez. Tu empresa puede liquidarlo de otra forma: compruébalo en la nómina del mes en que lo cobres.</div></div>`; })()}
   <div class="card"><h2>Datos de este mes</h2>
@@ -795,7 +797,7 @@ function vAjustes(){
     </div>
     ${(()=>{ const y=now0.getFullYear(); let ef=0; for(let m=1;m<=12;m++) ef+=horasMes(y,m,false).efect; const vp=Math.max(0,vacaciones(y).pend); const dias=Math.round(Math.max(0,ef-vp)*(Number(p.telePct)||0)/100);
       return `<div class="row" style="margin-top:8px"><span class="k">Días laborables efectivos ${y} (sin festivos ni vacaciones marcadas)</span><span>${ef}</span></div>
-      ${vp?`<div class="row"><span class="k">Menos vacaciones pendientes de marcar</span><span>−${num(vp,vp%1?1:0)}</span></div>`:""}<div class="row"><span class="k">Días de teletrabajo previstos (${num(Number(p.telePct)||0,0)} %)</span><span>${dias}</span></div>
+      ${vp?`<div class="row"><span class="k">Menos vacaciones pendientes de marcar</span><span class="neg">−${num(vp,vp%1?1:0)}</span></div>`:""}<div class="row"><span class="k">Días de teletrabajo previstos (${num(Number(p.telePct)||0,0)} %)</span><span>${dias}</span></div>
       <div class="row"><span class="k">Compensación anual estimada</span><span>${eur(dias*(Number(p.teleEur)||0)*(Number(p.jornadaPct)||100)/100)}</span></div>
       <div class="note">${(Number(p.telePct)||0)>=30?"Con un "+num(Number(p.telePct),0)+" % es <b>teletrabajo regular</b> (30 % o más de la jornada en un periodo de 3 meses), así que se aplica el art. 9 del convenio.":"Por debajo del 30 % de la jornada (en 3 meses) no se considera teletrabajo regular según el convenio."}</div>`; })()}
     <label class="check"><input type="checkbox" data-p="teleIRPF" ${p.teleIRPF!==false?"checked":""}> Aplicar IRPF a la compensación</label>
