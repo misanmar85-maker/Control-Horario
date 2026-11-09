@@ -221,7 +221,7 @@ const HOL = {
 const HOL_TIPO = {nac:"Nacional",aut:"Aragón",loc:"Local Zaragoza"};
 function holiday(date){ if(S.perfil.festivosZgz===false) return null; const h=HOL[date]; return h?{n:h[0],t:h[1],prov:!!h[2]}:null; }
 const NEUTROS = ["vacaciones","festivo","permiso","baja","libre","libre_ret"];
-const APP_VERSION = "v16";
+const APP_VERSION = "v17";
 const DOW = ["dom","lun","mar","mié","jue","vie","sáb"];
 
 function lastYear(tbl,y){ const ys=Object.keys(tbl).map(Number).sort(); if(tbl[y]) return y; return y>ys[ys.length-1]?ys[ys.length-1]:ys[0]; }
@@ -675,6 +675,19 @@ const RECIBO_CSS = `
 .rec .box b{display:inline-block;min-width:92px}
 .rec .sign{height:46px}
 .rec .aviso{border:1px dashed #b00020;color:#b00020;padding:5px 7px;margin-top:8px;font-size:10px;position:relative;z-index:1}
+@media print{
+  .rec{font-size:8.6px;line-height:1.22;padding:0;max-width:none}
+  .rec h1{font-size:11.5px;margin:0 0 5px}
+  .rec td,.rec th{padding:1.6px 4px}
+  .rec .box{padding:3px 5px}
+  .rec .box b{min-width:84px}
+  .rec .sign{height:28px}
+  .rec .small{font-size:7.8px}
+  .rec .aviso{font-size:7.8px;padding:3px 5px;margin-top:5px}
+  .rec table,.rec .grid{margin-top:5px!important}
+  .rec .wm span{font-size:96px}
+  .rec{break-inside:avoid}
+}
 `;
 function reciboHTML(y,m){
   const n=nominaMes(y,m), p=S.perfil;
@@ -802,7 +815,12 @@ function vNomina(){
     ${L(`Desempleo ${p.contrato==="temporal"?"1,60":"1,55"} %`,eurR(n.ss.des))}
     ${L("Formación profesional 0,10 %",eurR(n.ss.fp))}
     ${n.ss.he?L("Horas extra 4,70 %",eurR(n.ss.he)):""}
-    ${L(`IRPF ${num(n.irpfPct,2)} %${n.nm.irpfPct!==undefined&&n.nm.irpfPct!==""?" (este mes)":" (tipo anual)"}`,eurR(n.irpf))}
+    ${L(`IRPF ${num(n.irpfPct,2)} %${n.nm.irpfPct!==undefined&&n.nm.irpfPct!==""?" (solo este mes)":" (tipo anual)"}`,eurR(n.irpf))}
+    <div class="grid2" style="margin:6px 0 4px;align-items:end">
+      <div><label style="margin-top:4px">IRPF anual % (todos los meses)</label><input type="number" step="0.01" min="0" max="60" inputmode="decimal" data-p="irpf" value="${esc(p.irpf)}"></div>
+      <div><label style="margin-top:4px">IRPF solo este mes %</label><input type="number" step="0.01" min="0" max="60" inputmode="decimal" data-nm="irpfPct" value="${esc(nm.irpfPct??"")}" placeholder="vacío = anual"></div>
+    </div>
+    <div class="note" style="margin-top:2px">Se aplica ahora un <b>${num(n.irpfPct,2)} %</b> sobre ${eur(n.sujeto)}. Cambia el anual para todos los meses o pon un tipo distinto solo para este mes. Deja vacío el campo del mes para volver al anual.</div>
     ${L("Total deducciones",eurR(n.ssTot+n.irpf),"tot")}
     ${L("Líquido a percibir",eur(n.neto),"tot")}
     <details style="margin-top:8px"><summary>Bases de cotización</summary>
@@ -812,7 +830,7 @@ function vNomina(){
   </div>
   ${(()=>{ let b=0,nt=0,ss=0,ir=0,vr=0,tl=0,td=0,vc=0; for(let mm=1;mm<=12;mm++){ const x=nominaMes(cur.y,mm); vc+=x.varConv; b+=x.bruto; nt+=x.neto; ss+=x.ssTot; ir+=x.irpf; vr+=x.varObj; tl+=x.tele; td+=x.teleDias; }
     return `<div class="card"><h2>Resumen anual ${cur.y}</h2>
-    <div class="kpis" style="margin-bottom:8px"><div class="kpi"><div class="l">Bruto anual</div><div class="v">${eur(b)}</div></div><div class="kpi"><div class="l">Neto anual</div><div class="v pos">${eur(nt)}</div><div class="s">${eur(nt/12)} de media al mes</div></div></div>
+    <div class="kpis" style="margin-bottom:8px"><div class="kpi"><div class="l">Bruto anual</div><div class="v">${eur(b)}</div></div><div class="kpi"><div class="l">Neto anual</div><div class="v pos">${eur(nt)}</div><div class="s">≈ ${eur(nt/14)} por paga (14 pagas)</div></div></div>
     ${L("Fijo anual",eur(n.fijoAnualRef))}
     ${L(`Variable objetivos (${num(Number(p.varPct)||0,1)} % × ${num(Number(p.varCumpl)||0,0)} % cumplimiento)`,eur(vr))}
     ${vc?L("Incremento variable convenio (septiembre)",eur(vc)):""}
@@ -828,7 +846,6 @@ function vNomina(){
     <div class="grid2">
       <div><label>Horas extra a cobrar</label><input type="number" step="0.25" inputmode="decimal" data-nm="heHoras" value="${esc(nm.heHoras??"")}" placeholder="0"></div>
       <div><label>Variable objetivos cobrado €</label><input type="number" step="0.01" inputmode="decimal" data-nm="varReal" value="${esc(nm.varReal??"")}" placeholder="${n.varProg?num(n.varProg,2)+" (previsto)":"0"}"></div>
-      <div><label>IRPF % de este mes</label><input type="number" step="0.01" inputmode="decimal" data-nm="irpfPct" value="${esc(nm.irpfPct??"")}" placeholder="${num(Number(p.irpf)||0,2)} (general)"></div>
       <div><label>Otros variables / comisiones €</label><input type="number" step="0.01" inputmode="decimal" data-nm="variable" value="${esc(nm.variable??"")}" placeholder="0"></div>
       <div><label>Días teletrabajo</label><input type="number" inputmode="numeric" data-nm="teleDias" value="${esc(nm.teleDias??"")}" placeholder="${n.teleDias} (${n.teleSrc})"></div>
       <div><label>Km con vehículo propio</label><input type="number" inputmode="decimal" data-nm="km" value="${esc(nm.km??"")}" placeholder="0"></div>
