@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mi control laboral</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1f5f8b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Mi control">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<style>
+:root{
+  --bg:#f5f4f0; --card:#ffffff; --ink:#1d1f24; --muted:#6b6f78; --line:#e3e1da;
+  --accent:#1f5f8b; --accent-soft:#e3eef6; --ok:#2e7d4f; --ok-soft:#e4f3ea;
+  --warn:#9a6a00; --warn-soft:#fbf1d9; --bad:#b03a2e; --bad-soft:#f8e3e0;
+  --r:14px;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --bg:#15171b; --card:#1f2228; --ink:#eceae4; --muted:#9aa0aa; --line:#30343c;
+  --accent:#7fb6dc; --accent-soft:#1d3342; --ok:#7fcf9c; --ok-soft:#1c3226; --warn:#e4b84f; --warn-soft:#3a3019; --bad:#ef8a7d; --bad-soft:#3d2320;}
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+body{padding:env(safe-area-inset-top) env(safe-area-inset-right) calc(76px + env(safe-area-inset-bottom)) env(safe-area-inset-left)}
+.wrap{max-width:540px;margin:0 auto;padding:12px 14px 20px}
+header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 2px 10px}
+header h1{font-size:18px;margin:0;font-weight:650;letter-spacing:-.01em}
+header .sub{font-size:12px;color:var(--muted)}
+.monthnav{display:flex;align-items:center;gap:6px}
+.monthnav button{width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:16px}
+.monthnav span{min-width:108px;text-align:center;font-weight:600;font-size:14px;text-transform:capitalize}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px;margin:0 0 12px}
+.card h2{font-size:14px;margin:0 0 10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:12px}
+.kpi .l{font-size:12px;color:var(--muted)}
+.kpi .v{font-size:22px;font-weight:700;letter-spacing:-.02em;margin-top:2px;font-variant-numeric:tabular-nums}
+.kpi .s{font-size:12px;color:var(--muted);margin-top:2px}
+.pos{color:var(--ok)} .neg{color:var(--bad)}
+.row{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px dashed var(--line);font-variant-numeric:tabular-nums}
+.row:last-child{border-bottom:0}
+.row .k{color:var(--muted)} .row.tot{font-weight:700;border-top:1px solid var(--line);border-bottom:0;margin-top:4px;padding-top:9px}
+.row.tot .k{color:var(--ink)}
+.btn{appearance:none;border:0;border-radius:12px;padding:12px 14px;font-weight:600;font-size:15px;background:var(--accent);color:#fff;width:100%}
+.btn.sec{background:var(--accent-soft);color:var(--accent)}
+.btn.small{padding:8px 10px;font-size:13px;width:auto}
+.btn.ghost{background:transparent;color:var(--accent);border:1px solid var(--line)}
+.btn.danger{background:var(--bad-soft);color:var(--bad)}
+.btns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
+input,select,textarea{width:100%;padding:10px 11px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font-size:16px;font-family:inherit}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.grid2>div,.grid3>div{min-width:0} input[type=date],input[type=time]{min-width:0;-webkit-appearance:none;appearance:none}
+.check{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:14px;color:var(--ink)}
+.check input{width:20px;height:20px}
+.note{font-size:12px;color:var(--muted);margin-top:8px}
+.alert{border-radius:12px;padding:10px 12px;font-size:13px;margin:0 0 12px}
+.alert.warn{background:var(--warn-soft);color:var(--warn)}
+.alert.info{background:var(--accent-soft);color:var(--accent)}
+.alert.bad{background:var(--bad-soft);color:var(--bad)}
+.days{display:flex;flex-direction:column}
+.day{display:grid;grid-template-columns:52px 1fr auto;gap:8px;align-items:center;padding:9px 2px;border-bottom:1px solid var(--line);cursor:pointer}
+.day:last-child{border-bottom:0}
+.day .d{font-weight:650;font-variant-numeric:tabular-nums}
+.day .d small{display:block;font-weight:500;color:var(--muted);font-size:11px;text-transform:capitalize}
+.day .info{font-size:13px;color:var(--muted)}
+.day .h{font-weight:650;font-variant-numeric:tabular-nums;text-align:right}
+.day.today{background:var(--accent-soft);border-radius:10px;padding-left:6px;padding-right:6px}
+.day.off .d{color:var(--muted)}
+.tag{display:inline-block;font-size:11px;font-weight:650;padding:2px 7px;border-radius:99px;background:var(--line);color:var(--ink);margin-right:4px}
+.tag.vacaciones{background:var(--ok-soft);color:var(--ok)}
+.tag.festivo{background:var(--warn-soft);color:var(--warn)}
+.tag.teletrabajo{background:var(--accent-soft);color:var(--accent)}
+.tag.libre_ret{background:var(--ok-soft);color:var(--ok)}
+.tag.baja,.tag.permiso{background:var(--bad-soft);color:var(--bad)}
+.bar{height:8px;background:var(--line);border-radius:99px;overflow:hidden;margin-top:8px}
+.bar i{display:block;height:100%;background:var(--accent);border-radius:99px}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);display:flex;justify-content:space-around;padding:6px 4px calc(6px + env(safe-area-inset-bottom));z-index:10}
+nav.tabs button{flex:1;min-width:0;background:none;border:0;color:var(--muted);font-size:10px;font-weight:600;padding:4px 0;display:flex;flex-direction:column;align-items:center;gap:2px}
+nav.tabs button svg{width:22px;height:22px}
+nav.tabs button.on{color:var(--accent)}
+.sheet-bg{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;z-index:20;align-items:flex-end;justify-content:center}
+.sheet-bg.on{display:flex}
+.sheet{background:var(--card);width:100%;max-width:540px;border-radius:18px 18px 0 0;padding:16px 16px calc(18px + env(safe-area-inset-bottom));max-height:88vh;overflow:auto}
+.sheet h3{margin:0 0 4px;font-size:17px}
+.typepick{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.typepick button{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:99px;padding:7px 11px;font-size:13px;font-weight:600}
+.typepick button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.status{font-size:11px;color:var(--muted);text-align:center;margin-top:6px}
+.clock{font-size:34px;font-weight:700;text-align:center;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.center{text-align:center}
+table.t{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+table.t td,table.t th{padding:6px 4px;border-bottom:1px solid var(--line);text-align:right}
+table.t td:first-child,table.t th:first-child{text-align:left}
+table.t th{color:var(--muted);font-weight:600}
+details summary{cursor:pointer;font-weight:600;font-size:14px;padding:4px 0}
+.hidden{display:none}
+.yearnav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.yearnav b{font-size:20px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:12px;color:var(--muted);margin-top:8px}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:4px;vertical-align:-2px;margin-right:4px}
+.cal-mode{display:flex;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:3px;gap:3px}
+.cal-mode button{flex:1;border:0;background:none;color:var(--muted);font-weight:600;font-size:13px;padding:8px;border-radius:9px}
+.cal-mode button.on{background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.months{display:grid;grid-template-columns:1fr;gap:12px}
+@media (min-width:700px){.months{grid-template-columns:1fr 1fr}}
+.mon h3{margin:0 0 6px;font-size:15px;text-transform:capitalize;display:flex;justify-content:space-between}
+.mon h3 small{font-weight:500;color:var(--muted);font-size:12px;text-transform:none}
+.mgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.mgrid .wd{font-size:11px;color:var(--muted);text-align:center;padding:2px 0}
+.c{aspect-ratio:1/1;max-height:46px;display:flex;align-items:center;justify-content:center;border-radius:9px;font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;cursor:pointer;user-select:none;position:relative}
+.c.e{cursor:default}
+.c.we{color:var(--muted);background:transparent;font-weight:500}
+.c.lab{background:var(--bg)}
+.c.nac{background:#c0392b;color:#fff}.c.aut{background:#d9822b;color:#fff}.c.loc{background:#8e44ad;color:#fff}
+.c.vac{background:var(--ok);color:#fff}.c.tele{background:var(--accent-soft);color:var(--accent);box-shadow:inset 0 0 0 2px var(--accent)}.c.lret{background:#2a9d8f;color:#fff}
+.c.fest{background:#b9770e;color:#fff}.c.perm{background:var(--bad-soft);color:var(--bad)}
+.c.vac.fut{background:transparent;color:var(--ok);box-shadow:inset 0 0 0 2px var(--ok)}
+.c.today{outline:2px solid var(--accent);outline-offset:1px}
+.c.prov::after{content:"";position:absolute;top:4px;right:4px;width:5px;height:5px;border-radius:50%;background:#fff}
+.stack{display:flex;height:14px;border-radius:99px;overflow:hidden;background:var(--line);margin-top:10px}
+.stack i{display:block;height:100%}
+.evo{display:grid;grid-template-columns:repeat(12,1fr);gap:4px;align-items:end;height:90px;margin-top:10px}
+.evo div{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;font-size:10px;color:var(--muted)}
+.evo span.b{width:100%;background:var(--ok);border-radius:4px 4px 0 0;min-height:2px}
+.evo span.b.f{background:transparent;box-shadow:inset 0 0 0 2px var(--ok)}
+.evo em{font-style:normal;font-weight:700;color:var(--ink);font-size:11px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1 id="title">Mi control</h1>
+      <div class="sub">Convenio estatal de mediación de seguros privados</div>
+    </div>
+    <div class="monthnav" id="monthnav">
+      <button data-act="prev" aria-label="Mes anterior">‹</button>
+      <span id="monthlabel"></span>
+      <button data-act="next" aria-label="Mes siguiente">›</button>
+    </div>
+  </header>
+  <div id="banner"></div>
+  <main id="view"></main>
+  <div class="status" id="status"></div>
+</div>
+
+<nav class="tabs" id="tabs">
+  <button data-tab="inicio" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Inicio</button>
+  <button data-tab="horas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Horas</button>
+  <button data-tab="calendario"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Calendario</button>
+  <button data-tab="vacaciones"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>Vacaciones</button>
+  <button data-tab="nomina"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>Nómina</button>
+  <button data-tab="ajustes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Ajustes</button>
+</nav>
+
+<div class="sheet-bg" id="sheetbg"><div class="sheet" id="sheet"></div></div>
+
+<script>
+/* =====================================================================
+   DATOS DEL CONVENIO Y PARÁMETROS LEGALES
+   Fuentes:
+   - Convenio colectivo estatal de mediación de seguros privados 2023-2026
+     (BOE 15/11/2023, BOE-A-2023-23188; corrección BOE 08/06/2024).
+     Tablas transcritas de la circular 10/2023 de AEMES (Anexos I-IV).
+   - SMI 2026: RD 126/2026 (1.221 €/mes x 14 = 17.094 €/año).
+   - Cotización 2026: Orden PJC/297/2026 y RDL 3/2026 (base máx. 5.101,20 €;
+     CC 4,70 %, MEI 0,15 %, desempleo 1,55/1,60 %, FP 0,10 % a cargo del trabajador).
+   ===================================================================== */
+const SB = { // sueldo base mensual por nivel (x14)
+  2023:{1:2512.10,2:2084.50,3:1924.17,4:1763.84,5:1603.50,6:1336.24,7:1282.78,8:1122.44,9:1080.00},
+  2024:{1:2587.47,2:2147.03,3:1981.90,4:1816.75,5:1651.61,6:1376.33,7:1321.27,8:1156.11,9:1112.40},
+  2025:{1:2665.09,2:2211.44,3:2041.35,4:1871.25,5:1701.16,6:1417.62,7:1360.90,8:1190.79,9:1145.77},
+  2026:{1:2698.40,2:2239.09,3:2066.87,4:1894.64,5:1722.42,6:1435.34,7:1377.92,8:1205.67,9:1160.09}
+};
+const CPE = { // complemento por experiencia: importe mensual por año (máx. 10 años)
+  2023:{4:16.03,5:16.03,6:26.73,7:5.35,8:16.03},
+  2024:{4:16.51,5:16.51,6:27.53,7:5.51,8:16.51},
+  2025:{4:17.00,5:17.00,6:28.36,7:5.67,8:17.00},
+  2026:{4:17.21,5:17.21,6:28.71,7:5.74,8:17.21}
+};
+const KM = {2023:0.365,2024:0.365,2025:0.375,2026:0.38};
+const SMI_ANUAL = {2023:15120,2024:15876,2025:16576,2026:17094};
+const BASE_MAX = {2023:4495.50,2024:4720.50,2025:4909.50,2026:5101.20};
+const MEI_TRAB = {2023:0.10,2024:0.12,2025:0.13,2026:0.15};
+const JORNADA_ANUAL = 1720;
+const DIETA_PERNOCTA = 36, DIETA_SIN = 15.50, COMIDA = 13;
+const KM_EXENTO = 0.26; // límite exento IRPF por km (vehículo propio)
+const GRUPOS = {1:"I",2:"II.A",3:"II.B · V.A",4:"III.A · V.B",5:"III.B1 · V.C1",6:"III.C (y III.B2/V.C2 de entrada)",7:"IV.A",8:"III.D · IV.B",9:"VI"};
+const TIPOS = [
+  ["trabajo","Trabajo"],["teletrabajo","Teletrabajo"],["vacaciones","Vacaciones"],
+  ["festivo","Festivo"],["permiso","Permiso retrib."],["libre_ret","Día libre retrib."],["baja","Baja (IT)"],["libre","Libre"]
+];
+/* Festivos Zaragoza capital.
+   2026: BOE 28/10/2025 (nacionales), Decreto 70/2025 Gobierno de Aragón (BOA 16/07/2025), locales BOA 20/11/2025.
+   2027: Decreto 163/2026 Gobierno de Aragón (BOA 18/09/2026). Locales 2027 PROVISIONALES (pendientes de publicación en BOA). */
+const HOL = {
+  "2026-01-01":["Año Nuevo","nac"],"2026-01-06":["Epifanía del Señor","nac"],"2026-01-29":["San Valero","loc"],
+  "2026-03-05":["Cincomarzada","loc"],"2026-04-02":["Jueves Santo","aut"],"2026-04-03":["Viernes Santo","nac"],
+  "2026-04-23":["San Jorge, Día de Aragón","aut"],"2026-05-01":["Fiesta del Trabajo","nac"],"2026-08-15":["Asunción de la Virgen","nac"],
+  "2026-10-12":["Fiesta Nacional de España","nac"],"2026-11-02":["Todos los Santos (trasladado)","aut"],"2026-12-07":["Día de la Constitución (trasladado)","aut"],
+  "2026-12-08":["Inmaculada Concepción","nac"],"2026-12-25":["Natividad del Señor","nac"],
+  "2027-01-01":["Año Nuevo","nac"],"2027-01-06":["Epifanía del Señor","nac"],"2027-01-29":["San Valero","loc",1],
+  "2027-03-05":["Cincomarzada","loc",1],"2027-03-25":["Jueves Santo","aut"],"2027-03-26":["Viernes Santo","nac"],
+  "2027-04-23":["San Jorge, Día de Aragón","aut"],"2027-05-01":["Fiesta del Trabajo","nac"],"2027-08-16":["Asunción de la Virgen (trasladado)","aut"],
+  "2027-10-12":["Fiesta Nacional de España","nac"],"2027-11-01":["Todos los Santos","nac"],"2027-12-06":["Día de la Constitución","nac"],
+  "2027-12-08":["Inmaculada Concepción","nac"],"2027-12-25":["Natividad del Señor","nac"]
+};
+const HOL_TIPO = {nac:"Nacional",aut:"Aragón",loc:"Local Zaragoza"};
+function holiday(date){ if(S.perfil.festivosZgz===false) return null; const h=HOL[date]; return h?{n:h[0],t:h[1],prov:!!h[2]}:null; }
+const NEUTROS = ["vacaciones","festivo","permiso","baja","libre","libre_ret"];
+const DOW = ["dom","lun","mar","mié","jue","vie","sáb"];
+
+function lastYear(tbl,y){ const ys=Object.keys(tbl).map(Number).sort(); if(tbl[y]) return y; return y>ys[ys.length-1]?ys[ys.length-1]:ys[0]; }
+
+/* ============================ ESTADO ============================ */
+const DEFAULT_PERFIL = {
+  nombre:"", nivel:3, sbManual:0, brutoAnual:0, numPagas:14, varPct:0, varCumpl:100, varPago:"anual", varMes:2, varDesde:0, cpeAnios:0, pae:0, otros:0, complEnExtras:true, varConvPct:0,
+  jornadaPct:100, contrato:"indefinido", irpf:15, prorrata:false, mesesExtra:[6,12],
+  heModo:"descanso", heRecargo:0, teleEur:1.07, telePct:60, teleIRPF:true,
+  horasDia:{0:0,1:8.5,2:8.5,3:8.5,4:8.5,5:6.5,6:0},
+  veranoOn:true, veranoMeses:[7,8], horasVerano:{0:0,1:6.5,2:6.5,3:6.5,4:6.5,5:6.5,6:0},
+  pausaDef:60, pausaMin:30, autoSalida:true, flexDesde:"07:00", entradaHab:"08:30",
+  fechaAlta:"", fechaAntiguedad:"", vacAnterior:0,
+  vacBase:26, vacAntig:true, cumple:"", cumpleAlt:{}, dias2431:true, festivosZgz:true
+};
+let S = { perfil: structuredClone(DEFAULT_PERFIL), months:{}, nominas:{} };
+let tab = "inicio"; let calMode="vac"; let calScrolled=false;
+const now0 = new Date();
+let cur = { y: now0.getFullYear(), m: now0.getMonth()+1 };
+let mode="local";
+
+/* ============================ UTILIDADES ============================ */
+const pad = n => String(n).padStart(2,"0");
+const ymKey = (y,m) => `${y}-${pad(m)}`;
+const dkey = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const todayKey = () => dkey(new Date());
+// Formato español fijo: punto de miles y coma decimal (Intl en es-ES no agrupa números de 4 cifras).
+function fmtNum(n,d){
+  n = Number(n); if(!isFinite(n)) n=0;
+  const f = Math.pow(10,d); let r = Math.round(Math.abs(n)*f)/f; const neg = n<0 && r>0;
+  let [i,dec] = r.toFixed(d).split(".");
+  i = i.replace(/\B(?=(\d{3})+(?!\d))/g,".");
+  return (neg?"-":"")+i+(dec?","+dec:"");
+}
+const eur = n => fmtNum(n,2)+"\u00a0€";
+const num = (n,d=1) => fmtNum(n,d);
+const r2 = n => Math.round(n*100)/100;
+const toMin = t => { if(!t) return null; const [h,m]=t.split(":").map(Number); return h*60+m; };
+const hhmm = () => { const d=new Date(); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+const esc = s => String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const monthName = (y,m) => new Date(y,m-1,1).toLocaleDateString("es-ES",{month:"long",year:"numeric"});
+function daysIn(y,m){ return new Date(y,m,0).getDate(); }
+function fmtH(h){ const tot=Math.round(Math.abs(Number(h)||0)*60); const s=(h<0&&tot>0)?"-":""; const H=Math.floor(tot/60), M=tot%60; return `${s}${fmtNum(H,0)}h${M?(" "+pad(M)):""}`; }
+
+/* ============================ PERSISTENCIA ============================ */
+const LS_KEY = "micontrol-mediacion-v1";
+function lsLoad(){ try{ const t=localStorage.getItem(LS_KEY); if(t){ const o=JSON.parse(t); if(o.perfil&&o.perfil.horasDia&&JSON.stringify(o.perfil.horasDia)===JSON.stringify({0:0,1:8,2:8,3:8,4:8,5:7,6:0})) delete o.perfil.horasDia; S.perfil={...DEFAULT_PERFIL,...o.perfil, horasDia:{...DEFAULT_PERFIL.horasDia,...((o.perfil||{}).horasDia||{})}}; S.months=o.months||{}; S.nominas=o.nominas||{}; } }catch(e){} }
+function lsSave(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(S)); }catch(e){} }
+
+function save(){ lsSave(); setStatus("Guardado en este dispositivo"); }
+function setStatus(t,bad){ const el=document.getElementById("status"); el.textContent=t; el.style.color=bad?"var(--bad)":""; }
+async function initStore(){
+  mode="local"; lsLoad(); autoClose(); render();
+  try{ if(navigator.storage && navigator.storage.persist) await navigator.storage.persist(); }catch(e){}
+  try{ localStorage.setItem("__t","1"); localStorage.removeItem("__t"); setStatus("Datos guardados en este dispositivo"); }
+  catch(e){ banner(`<div class="alert bad">Este navegador no permite guardar datos (¿modo privado?). Lo que anotes se perderá al cerrar.</div>`); }
+  if("serviceWorker" in navigator){ try{ navigator.serviceWorker.register("sw.js"); }catch(e){} }
+}
+function isTyping(){ const a=document.activeElement; return a && ["INPUT","SELECT","TEXTAREA"].includes(a.tagName); }
+function banner(h){ document.getElementById("banner").innerHTML=h; }
+
+/* ============================ CÁLCULOS ============================ */
+function monthDoc(y,m){ const k=ymKey(y,m); if(!S.months[k]) S.months[k]={dias:{}}; return S.months[k]; }
+function dayEntry(date){ const k=date.slice(0,7); return (S.months[k]&&S.months[k].dias[date])||null; }
+
+function esVerano(date){ const p=S.perfil; return p.veranoOn && (p.veranoMeses||[]).map(Number).includes(+date.slice(5,7)); }
+function teorDia(date){ // horas teóricas por calendario del perfil (con jornada intensiva)
+  const p=S.perfil, wd=new Date(date+"T12:00:00").getDay();
+  if(p.fechaAlta && date < p.fechaAlta) return 0;
+  const tabla = esVerano(date) ? (p.horasVerano||{}) : p.horasDia;
+  return Number(tabla[wd]||0);
+}
+function autoClose(){ // cierra jornadas abiertas a la hora prevista (si está activado)
+  if(!S.perfil.autoSalida) return false;
+  const tk=todayKey(), nowM=toMin(hhmm()); let changed=false;
+  for(const [k,md] of Object.entries(S.months)){
+    for(const [date,e] of Object.entries(md.dias)){
+      if(!e.e || e.s || date>tk || teorDia(date)<=0) continue;
+      const pa = esPartida(date) ? (e.p!==undefined?Number(e.p):Number(S.perfil.pausaDef)||0) : (Number(e.p)||0);
+      const fin = toMin(e.e) + Math.round(teorDia(date)*60) + (esPartida(date)?pa:0);
+      if(date===tk && (fin>=1440 || nowM<fin)) continue;
+      const f=Math.min(fin,1439);
+      md.dias[date]={...e, s:`${pad(Math.floor(f/60))}:${pad(f%60)}`, p:pa, auto:true};
+      save("m-"+k); changed=true;
+    }
+  }
+  return changed;
+}
+function esPartida(date){ return teorDia(date) > 7 && !esVerano(date); } // jornada con pausa para comer
+function salidaPrevista(e, date, pausa){
+  const t=teorDia(date); if(!e||!e.e||!t) return null;
+  const mins = toMin(e.e) + Math.round(t*60) + (esPartida(date)?pausa:0);
+  return `${pad(Math.floor(mins/60)%24)}:${pad(mins%60)}`;
+}
+function workedOf(e){
+  if(!e||!e.e||!e.s) return 0;
+  let a=toMin(e.e), b=toMin(e.s); if(b<a) b+=1440;
+  return Math.max(0,(b-a-(Number(e.p)||0))/60);
+}
+function libreAuto(date){ // 24 y 31 dic y cumpleaños, solo si son laborables
+  const p=S.perfil; if(teorDia(date)<=0 || holiday(date)) return null;
+  const md=date.slice(5);
+  if(p.dias2431 && (md==="12-24"||md==="12-31")) return md==="12-24"?"24 de diciembre":"31 de diciembre";
+  const cd=cumpleDia(+date.slice(0,4)); if(cd && cd===date) return "Cumpleaños";
+  return null;
+}
+function cumpleDia(y){ // fecha de disfrute del día de cumpleaños ese año
+  const p=S.perfil; const alt=(p.cumpleAlt||{})[y]; if(alt) return alt;
+  if(!p.cumple) return null; const d=`${y}-${p.cumple.slice(5)}`;
+  return (teorDia(d)>0 && !holiday(d)) ? d : null;
+}
+function tipoOf(date,e){ if(e&&e.t) return e.t; if(holiday(date)) return "festivo"; if(libreAuto(date)) return "libre_ret"; return teorDia(date)>0?"trabajo":"libre"; }
+
+function horasMes(y,m,hastaHoy){
+  const tk=todayKey(); let teor=0,trab=0,teorHoy=0,teorReg=0,sinReg=0,tele=0,telePlan=0,efect=0,vac=0,fest=0,diasTrab=0;
+  for(let d=1; d<=daysIn(y,m); d++){
+    const date=`${y}-${pad(m)}-${pad(d)}`, e=dayEntry(date), t=tipoOf(date,e);
+    const td = NEUTROS.includes(t)?0:teorDia(date);
+    const w = workedOf(e);
+    teor+=td; trab+=w;
+    if(date<=tk) teorHoy+=td;
+    if(e && e.e && e.s) teorReg+=td;
+    if(t==="teletrabajo" && w>0) tele++;
+    if(t==="teletrabajo") telePlan++;
+    if(td>0) efect++;
+    if(t==="vacaciones" && teorDia(date)>0) vac++;
+    if(t==="festivo") fest++;
+    if(w>0) diasTrab++;
+    if(td>0 && date<=tk && !(e&&(e.e||e.s))) sinReg++;
+  }
+  const teleObj=Math.round(efect*(Number(S.perfil.telePct)||0)/100);
+  return {teor,trab,teorHoy,teorReg,sinReg,tele,telePlan,efect,teleObj,vac,fest,diasTrab, saldo: trab-teorReg};
+}
+function horasAnio(y){
+  let trab=0,teor=0; for(let m=1;m<=12;m++){ const h=horasMes(y,m,false); trab+=h.trab; teor+=h.teor; } return {trab,teor};
+}
+
+function antiguedadAnios(y){ // años cumplidos a 31/12 del año y
+  const f=S.perfil.fechaAntiguedad||S.perfil.fechaAlta; if(!f) return null;
+  const a=new Date(f+"T12:00:00"); return y - a.getFullYear() - ((12<a.getMonth()+1)?1:0);
+}
+function vacaciones(y){
+  const p=S.perfil; let base=Number(p.vacBase)||25, extra=0; const ant=antiguedadAnios(y);
+  if(ant!==null && p.vacAntig!==false){ if(ant>=20) extra++; if(ant>=30) extra++; }
+  let derecho=base+extra, prop=1;
+  if(p.fechaAlta){ const a=new Date(p.fechaAlta+"T12:00:00"); if(a.getFullYear()===y){ const ini=new Date(y,0,1), fin=new Date(y,11,31); prop=((fin-a)/86400000+1)/((fin-ini)/86400000+1); } else if(a.getFullYear()>y) prop=0; }
+  derecho = Math.round(derecho*prop*10)/10;
+  let usadas=0; const fechas=[];
+  for(let m=1;m<=12;m++){ const md=S.months[ymKey(y,m)]; if(!md) continue;
+    for(const [date,e] of Object.entries(md.dias)){ if(e.t==="vacaciones" && teorDia(date)>0){ usadas++; fechas.push(date);} } }
+  fechas.sort();
+  const anterior = Number(p.vacAnterior)||0;
+  const libres=[];
+  if(p.dias2431){ ["12-24","12-31"].forEach(md=>{ const d=`${y}-${md}`; libres.push({n:md==="12-24"?"24 de diciembre":"31 de diciembre", d, ok:teorDia(d)>0}); }); }
+  if(p.cumple){ const d0=`${y}-${p.cumple.slice(5)}`, cd=cumpleDia(y); libres.unshift({n:"Cumpleaños", d:cd||d0, ok:!!cd, alt:!!(p.cumpleAlt||{})[y]}); }
+  return {base,extra,prop,derecho,anterior,usadas,pend:derecho+anterior-usadas,fechas,ant,libres};
+}
+
+function nominaMes(y,m){
+  const p=S.perfil, warn=[];
+  const ty=lastYear(SB,y); if(ty!==y) warn.push(`No hay tablas del convenio para ${y}; se usan las de ${ty}. El convenio vence el 31/12/2026 y, hasta que se firme uno nuevo, se mantiene vigente.`);
+  const pct=(Number(p.jornadaPct)||100)/100;
+  const nivel=Number(p.nivel);
+  const ba = Number(p.brutoAnual)||0;
+  const nP = Math.min(16,Math.max(12,Number(p.numPagas)||14)), nEx = nP-12;
+  const sbConv = SB[ty][nivel]*pct;
+  const cpe = (CPE[ty][nivel]||0)*Math.min(10,Math.max(0,Number(p.cpeAnios)||0))*pct;
+  const pae=Number(p.pae)||0, otros=Number(p.otros)||0;
+  let sb, mejora=0, pagaU;
+  if(ba>0){
+    pagaU = ba/nP; sb = sbConv; mejora = pagaU-sbConv-cpe;
+    if(mejora < -0.005) warn.push(`Tu salario pactado (${eur(pagaU)} por paga) queda por debajo del salario base del convenio para tu nivel más el complemento por experiencia (${eur(sbConv+cpe)}). Revísalo: el convenio es un mínimo.`);
+  } else { sb = Number(p.sbManual)>0 ? Number(p.sbManual) : sbConv; pagaU = sb+cpe; }
+  let fijos = pagaU+pae+otros;
+  let extraUnit = (ba>0 ? pagaU : sb) + (p.complEnExtras?(ba>0?(pae+otros):(cpe+pae+otros)):0);
+  const anual = fijos*12+extraUnit*nEx;
+  const mesesEx=(p.mesesExtra||[]).map(Number);
+  if(!p.prorrata && nEx>0 && mesesEx.length!==nEx) warn.push(`Has indicado ${nP} pagas (${nEx} extra) pero ${mesesEx.length} meses de paga extra en Ajustes. Revisa los meses.`);
+  const smi = (SMI_ANUAL[lastYear(SMI_ANUAL,y)])*pct;
+  let complSMI=0;
+  if(anual<smi-0.005){ complSMI=(smi-anual)/nP; fijos+=complSMI; extraUnit+=complSMI; warn.push(`Tu retribución fija anual (${eur(anual)}) queda por debajo del SMI (${eur(smi)}). Se añade un complemento hasta el SMI.`); }
+  const nm = (S.nominas[String(y)]||{})[pad(m)]||{};
+  const h = horasMes(y,m,false);
+  const precioHora = (fijos*12+extraUnit*nEx)/(JORNADA_ANUAL*pct);
+  const heHoras = nm.heHoras!==undefined && nm.heHoras!=="" ? Number(nm.heHoras) : 0;
+  const heImporte = p.heModo==="pago" ? heHoras*precioHora*(1+(Number(p.heRecargo)||0)/100) : 0;
+  // Proporción por fecha de alta
+  const fM = fracServicio(`${y}-${pad(m)}-01`, finMes(y,m));
+  if(fM===0) warn.unshift(`Mes anterior a tu fecha de alta (${new Date(p.fechaAlta+"T12:00:00").toLocaleDateString("es-ES")}): no hay nómina.`);
+  else if(fM<1) warn.unshift(`Mes de alta: salario proporcional a ${Math.round(fM*daysIn(y,m))} de ${daysIn(y,m)} días naturales.`);
+  const extraMes = !p.prorrata && nEx>0 && mesesEx.includes(m);
+  const prorrata = p.prorrata ? extraUnit*nEx/12*fM : 0;
+  let fPaga = 1;
+  if(extraMes){ const ord=[...mesesEx].sort((a,b)=>a-b), i=ord.indexOf(m), prev=i>0?ord[i-1]:0; fPaga = fracServicio(`${y}-${pad(prev+1)}-01`, finMes(y,m));
+    if(fPaga<1 && fPaga>0) warn.push(`Paga extra proporcional al tiempo de servicio en el periodo de devengo (${num(fPaga*100,1)} %), según el art. 43 del convenio.`); }
+  const paga = extraMes ? extraUnit*fPaga : 0;
+  const variable = Number(nm.variable)||0;
+  const fijoAnualRef = ba>0 ? ba : (fijos*12+extraUnit*nEx);
+  const varAnual = fijoAnualRef*(Number(p.varPct)||0)/100*(Number(p.varCumpl)||0)/100;
+  let varProg = 0;
+  if(varAnual>0){
+    if(p.varPago==="mensual") varProg = varAnual/12;
+    else if(p.varPago==="trimestral") varProg = [3,6,9,12].includes(m) ? varAnual/4 : 0;
+    else varProg = m===Number(p.varMes) ? varAnual : 0;
+    // proporción: anual = objetivos del año anterior; mensual/trimestral = periodo en curso
+    if(p.varPago==="mensual") varProg*=fM;
+    else if(p.varPago==="trimestral") varProg*=fracServicio(`${y}-${pad(m-2)}-01`, finMes(y,m));
+    else if(varProg) varProg*=fracServicio(`${y-1}-01-01`,`${y-1}-12-31`);
+    const anioObj = p.varPago==="anual" ? y-1 : y;
+    if(Number(p.varDesde) && anioObj < Number(p.varDesde)) varProg=0;
+  }
+  const varEnBase = !(Number(p.varDesde) && y < Number(p.varDesde));
+  const varObj = (nm.varReal!==undefined && nm.varReal!=="") ? Number(nm.varReal) : varProg;
+  const varConvAnual = SB[ty][nivel]*14*pct*(Number(p.varConvPct)||0)/100;
+  // Art. 48.8: proporcional a la permanencia en el año, contando desde el día 1 del mes siguiente a la incorporación
+  let fConv=1; if(p.fechaAlta){ const ay=+p.fechaAlta.slice(0,4), am=+p.fechaAlta.slice(5,7), ad=+p.fechaAlta.slice(8,10); if(ay===y) fConv=Math.max(0,12-am)/12; else if(ay>y) fConv=0; }
+  const varConv = (m===9 && fM>0) ? varConvAnual*fConv : 0;
+  const kmRate = KM[lastYear(KM,y)];
+  const km = (Number(nm.km)||0)*kmRate;
+  const kmExceso = (Number(nm.km)||0)*Math.max(0,kmRate-KM_EXENTO);
+  const dietas = (Number(nm.dPern)||0)*DIETA_PERNOCTA+(Number(nm.dSin)||0)*DIETA_SIN+(Number(nm.comidas)||0)*COMIDA;
+  const ymNow = now0.getFullYear()*12+now0.getMonth()+1, ymThis = y*12+m;
+  let teleSrc, teleDias;
+  if(nm.teleDias!==undefined && nm.teleDias!==""){ teleDias=Number(nm.teleDias); teleSrc="manual"; }
+  else if(ymThis<ymNow){ teleDias=Math.max(h.tele,h.telePlan); teleSrc="registrado"; }
+  else { teleDias=Math.max(h.telePlan,h.teleObj); teleSrc = h.telePlan>=h.teleObj && h.telePlan>0 ? "planificado" : "previsto "+num(Number(p.telePct)||0,0)+" %"; }
+  const tele = teleDias*(Number(p.teleEur)||0)*pct;
+  const fijosMes = fijos*fM;
+  const bruto = fijosMes+prorrata+paga+heImporte+variable+varObj+varConv+km+dietas+tele;
+  const bmax = BASE_MAX[lastYear(BASE_MAX,y)];
+  const baseCC = Math.min(bmax, fijosMes+variable+kmExceso+(extraUnit*nEx/12+(varEnBase?varAnual/12:0)+varConvAnual/12)*fM);
+  const baseAT = Math.min(bmax, baseCC+heImporte);
+  const meiT = MEI_TRAB[lastYear(MEI_TRAB,y)];
+  const ss = {
+    cc: baseCC*0.047, mei: baseCC*meiT/100,
+    des: baseAT*(p.contrato==="temporal"?0.016:0.0155), fp: baseAT*0.001, he: heImporte*0.047
+  };
+  const ssTot = ss.cc+ss.mei+ss.des+ss.fp+ss.he;
+  const sujeto = fijosMes+prorrata+paga+heImporte+variable+varObj+varConv+kmExceso+(p.teleIRPF!==false?tele:0);
+  const irpfPct = (nm.irpfPct!==undefined && nm.irpfPct!=="") ? Number(nm.irpfPct) : (Number(p.irpf)||0);
+  const irpf = sujeto*irpfPct/100;
+  const neto = bruto-ssTot-irpf;
+  return {irpfPct,fM,fPaga,y:ty,varConv,varConvAnual,teleSrc,varAnual,varProg,varObj,fijoAnualRef,ba,nP,nEx,mejora:mejora*fM,sbConv,sb:sb*fM,cpe:cpe*fM,pae:pae*fM,otros:otros*fM,complSMI:complSMI*fM,fijos,extraUnit,anual:fijos*12+extraUnit*nEx,prorrata,paga,extraMes,heHoras,heImporte,precioHora,variable,km,kmExceso,dietas,teleDias,tele,bruto,baseCC,baseAT,ss,ssTot,meiT,sujeto,irpf,neto,warn,nm,h};
+}
+
+/* Fracción del periodo [ini, fin] (fechas "AAAA-MM-DD", inclusive) en la que hay relación laboral */
+function fracServicio(ini, fin){
+  const a=S.perfil.fechaAlta; if(!a || a<=ini) return 1; if(a>fin) return 0;
+  const d=s=>new Date(s+"T12:00:00").getTime();
+  return (Math.round((d(fin)-d(a))/86400000)+1)/(Math.round((d(fin)-d(ini))/86400000)+1);
+}
+const finMes=(y,m)=>`${y}-${pad(m)}-${pad(daysIn(y,m))}`;
+
+/* ============================ VISTAS ============================ */
+function render(){
+  document.getElementById("monthlabel").textContent = new Date(cur.y,cur.m-1,1).toLocaleDateString("es-ES",{month:"short",year:"numeric"}).replace(".","");
+  document.getElementById("monthnav").style.visibility = (tab==="ajustes"||tab==="calendario")?"hidden":"visible";
+  document.querySelectorAll("#tabs button").forEach(b=>b.classList.toggle("on",b.dataset.tab===tab));
+  const v=document.getElementById("view");
+  v.innerHTML = ({inicio:vInicio,horas:vHoras,calendario:vCalendario,vacaciones:vVacaciones,nomina:vNomina,ajustes:vAjustes})[tab]();
+  if(tab==="calendario" && !calScrolled){ calScrolled=true; const t=document.querySelector(".mon.curmon"); if(t) setTimeout(()=>t.scrollIntoView({block:"start"}),30); }
+}
+
+function vInicio(){
+  const tk=todayKey(), e=dayEntry(tk), isCur = cur.y===now0.getFullYear() && cur.m===now0.getMonth()+1;
+  const h=horasMes(cur.y,cur.m,isCur), n=nominaMes(cur.y,cur.m), va=vacaciones(cur.y), ya=horasAnio(cur.y);
+  const pctJ=(Number(S.perfil.jornadaPct)||100)/100, fA=fracServicio(`${cur.y}-01-01`,`${cur.y}-12-31`), maxA=JORNADA_ANUAL*pctJ*fA;
+  let fichaje="";
+  {
+    const state = !e||!e.e ? "Sin fichar hoy" : (!e.s ? `Entrada a las ${e.e}` : `Jornada cerrada: ${e.e}–${e.s}${e.auto?" (salida automática)":""}`);
+    fichaje = `<div class="card"><h2>Hoy · ${new Date().toLocaleDateString("es-ES",{weekday:"long",day:"numeric",month:"long"})}</h2>
+      <div class="clock" id="clock">${hhmm()}</div>
+      <div class="center note" style="margin:2px 0 12px">${esc(state)}${e&&e.e&&e.s?` · ${fmtH(workedOf(e))}`:""}</div>
+      ${e&&e.e&&!e.s&&teorDia(tk)>0?(()=>{ const P=S.perfil; const pa=e.p!==undefined?Number(e.p):Number(P.pausaDef);
+        return `<div class="alert info center" style="margin:-4px 0 12px">Salida prevista: <b style="font-size:17px">${salidaPrevista(e,tk,pa)}</b>${esPartida(tk)?` con ${pa}′ de comida`:" (jornada continua)"}${P.autoSalida?`<div class="note" style="margin-top:4px">Se fichará la salida automáticamente a esa hora. Si sales en otro momento, pulsa "Fichar salida".</div>`:""}
+        ${esPartida(tk)?`<div style="margin-top:6px">Comida: ${[Number(P.pausaMin),45,Number(P.pausaDef)].filter((v,i,a)=>a.indexOf(v)===i).sort((a,b)=>a-b).map(v=>`<button class="btn small ${pa===v?"":"ghost"}" style="margin:2px" data-act="pausa" data-v="${v}">${v}′ → ${salidaPrevista(e,tk,v)}</button>`).join("")}</div>`:""}</div>`; })():""}
+      ${e&&e.e&&toMin(e.e)<toMin(S.perfil.flexDesde||"00:00")?`<div class="alert warn center" style="margin:-4px 0 12px">Has entrado antes de las ${esc(S.perfil.flexDesde)}, fuera de la flexibilidad horaria.</div>`:""}
+      <div class="btns">
+        <button class="btn" data-act="in" ${e&&e.e&&!e.s?"disabled style='opacity:.5'":""}>Fichar entrada</button>
+        <button class="btn sec" data-act="out" ${!e||!e.e||e.s?"disabled style='opacity:.5'":""}>Fichar salida</button>
+      </div>
+      ${e&&e.auto?`<div class="alert warn center" style="margin:10px 0 0">Salida fichada automáticamente a la hora prevista. Si saliste a otra hora, corrígelo en <b>Horas</b>.</div>`:""}
+      <div class="note center">También puedes añadir o corregir cualquier día en <b>Horas</b>.</div></div>`;
+  }
+  return `${fichaje}
+  <div class="kpis">
+    <div class="kpi"><div class="l">Horas del mes</div><div class="v">${fmtH(h.trab)}</div><div class="s">de ${fmtH(h.teor)} teóricas</div></div>
+    <div class="kpi"><div class="l">Saldo del mes</div><div class="v ${h.saldo>=0?"pos":"neg"}">${h.saldo>=0?"+":""}${fmtH(h.saldo)}</div><div class="s">${h.sinReg?h.sinReg+" días laborables sin registrar":(h.saldo>0?"posibles horas extra":"en los días registrados")}</div></div>
+    <div class="kpi"><div class="l">Vacaciones ${cur.y}</div><div class="v">${num(va.pend,va.pend%1?1:0)} d</div><div class="s">pendientes de ${num(va.derecho+va.anterior,(va.derecho+va.anterior)%1?1:0)}</div></div>
+    <div class="kpi"><div class="l">Neto estimado</div><div class="v">${eur(n.neto)}</div><div class="s">${n.extraMes?"incluye paga extra":"bruto "+eur(n.bruto)}</div></div>
+  </div>
+  <div class="card" style="margin-top:12px"><h2>Jornada anual ${cur.y}</h2>
+    <div class="row"><span class="k">Horas trabajadas en el año</span><span>${fmtH(ya.trab)}</span></div>
+    <div class="row"><span class="k">Máximo convenio (1.720 h${pctJ<1?" × "+num(pctJ*100,0)+" %":""}${fA<1?", proporcional al alta":""})</span><span>${fmtH(maxA)}</span></div>
+    <div class="bar"><i style="width:${Math.min(100,ya.trab/maxA*100)}%"></i></div>
+    <div class="row" style="margin-top:6px"><span class="k">Tu calendario teórico suma</span><span>${fmtH(ya.teor)}</span></div>
+    ${(()=>{ const hd=S.perfil.horasDia, lab=[1,2,3,4,5].map(d=>Number(hd[d]||0)), avg=lab.reduce((a,b)=>a+b,0)/5; const adj=ya.teor-Math.max(0,va.pend)*avg; return `<div class="row"><span class="k">Descontando vacaciones pendientes</span><span>${fmtH(adj)}</span></div>`+(adj>maxA+0.5?`<div class="alert warn" style="margin-top:8px">Aún te salen ${fmtH(adj-maxA)} por encima del máximo anual. Probablemente faltan por marcar los festivos (nacionales, autonómicos y locales). Si después de marcarlos sigue saliendo, revisa tu horario en Ajustes.</div>`:""); })()}
+  </div>
+  ${!S.perfil.fechaAlta?`<div class="alert info">Completa tus datos en <b>Ajustes</b> (nivel, antigüedad, IRPF…) para que los cálculos sean los tuyos.</div>`:""}`;
+}
+
+function vHoras(){
+  const h=horasMes(cur.y,cur.m,false), tk=todayKey();
+  let rows="";
+  for(let d=daysIn(cur.y,cur.m); d>=1; d--){
+    const date=`${cur.y}-${pad(cur.m)}-${pad(d)}`, e=dayEntry(date), t=tipoOf(date,e), w=workedOf(e);
+    const dt=new Date(date+"T12:00:00"); const off = teorDia(date)===0 && !e;
+    if(date>tk && !e) { /* futuro sin datos: mostrar solo si laborable */ }
+    const info = e && e.e ? `${e.e}${e.s?"–"+e.s+(e.auto?" (auto)":""):" · en curso"}${e.p?` · pausa ${e.p}′`:""}${toMin(e.e)<toMin(S.perfil.flexDesde||"00:00")?" · ⚠ antes de "+S.perfil.flexDesde:""}${esPartida(date)&&e.s&&e.p!==undefined&&Number(e.p)<Number(S.perfil.pausaMin)?" · ⚠ comida < "+S.perfil.pausaMin+"′":""}` : (NEUTROS.includes(t)&&t!=="libre"?"":(off?"no laborable":(date<=tk?"sin registrar":"")));
+    rows += `<div class="day ${date===tk?"today":""} ${off?"off":""}" data-day="${date}">
+      <div class="d">${d}<small>${DOW[dt.getDay()]}</small></div>
+      <div class="info">${t!=="trabajo"&&t!=="libre"?`<span class="tag ${t}">${TIPOS.find(x=>x[0]===t)[1]}</span>`:""}${!e&&holiday(date)?esc(holiday(date).n)+" ":""}${!e&&t==="libre_ret"?esc(libreAuto(date))+" ":""}${esc(info)}${e&&e.n?` · ${esc(e.n)}`:""}</div>
+      <div class="h">${w?fmtH(w):""}</div></div>`;
+  }
+  return `<div class="kpis" style="margin-bottom:12px">
+    <div class="kpi"><div class="l">Trabajadas</div><div class="v">${fmtH(h.trab)}</div><div class="s">${h.diasTrab} días · ${h.tele} teletrabajo</div></div>
+    <div class="kpi"><div class="l">Saldo del mes</div><div class="v ${h.saldo>=0?"pos":"neg"}">${h.saldo>=0?"+":""}${fmtH(h.saldo)}</div><div class="s">solo días registrados</div></div>
+  </div>
+  <div class="card"><h2>Días</h2><div class="days">${rows}</div>
+  <div class="note">Toca un día para registrar entrada, salida, pausa o marcarlo como vacaciones, festivo, permiso o baja.</div></div>`;
+}
+
+function vCalendario(){
+  const y=cur.y, tk=todayKey(), va=vacaciones(y);
+  let pasadas=0, futuras=0; const porMes=Array(12).fill(0).map(()=>({p:0,f:0}));
+  va.fechas.forEach(d=>{ const m=+d.slice(5,7)-1; if(d<=tk){pasadas++;porMes[m].p++;} else {futuras++;porMes[m].f++;} });
+  const total=va.derecho+va.anterior, sin=total-pasadas-futuras;
+  const maxM=Math.max(1,...porMes.map(x=>x.p+x.f));
+  let months="";
+  for(let m=1;m<=12;m++){
+    const first=new Date(y,m-1,1), off=(first.getDay()+6)%7, nd=daysIn(y,m);
+    let cells=["L","M","X","J","V","S","D"].map(w=>`<div class="wd">${w}</div>`).join("");
+    for(let i=0;i<off;i++) cells+=`<div></div>`;
+    let nvac=0;
+    for(let d=1; d<=nd; d++){
+      const date=`${y}-${pad(m)}-${pad(d)}`, e=dayEntry(date), h=holiday(date), t=tipoOf(date,e), lab=teorDia(date)>0;
+      let cls="c ", title="";
+      if(e&&e.t==="vacaciones"){ cls+="vac"+(date>tk?" fut":""); title="Vacaciones"; nvac++; }
+      else if(h && !(e&&e.t)){ cls+=h.t+(h.prov?" prov":""); title=h.n+" ("+HOL_TIPO[h.t]+(h.prov?", provisional":"")+")"; }
+      else if(t==="festivo"){ cls+="fest"; title="Festivo (marcado por ti)"; }
+      else if(t==="libre_ret"){ cls+="lret"; title=(e&&e.n)||libreAuto(date)||"Día libre retribuido"; }
+      else if(t==="teletrabajo"){ cls+="tele"; title="Teletrabajo"; }
+      else if(t==="permiso"||t==="baja"){ cls+="perm"; title=TIPOS.find(x=>x[0]===t)[1]; }
+      else if(!lab){ cls+="we"; }
+      else { cls+="lab"; }
+      if(date===tk) cls+=" today";
+      cells+=`<div class="${cls}" data-cal="${date}" title="${esc(title)}">${d}</div>`;
+    }
+    const isCur = y===now0.getFullYear() && m===now0.getMonth()+1;
+    months+=`<div class="card mon ${isCur?"curmon":""}"><h3>${new Date(y,m-1,1).toLocaleDateString("es-ES",{month:"long"})}<small>${[nvac?nvac+" vac.":"", (()=>{ const hm=horasMes(y,m,false); return (Number(S.perfil.telePct)||0)>0?`tele ${hm.telePlan}/${hm.teleObj}`:""; })()].filter(Boolean).join(" · ")}</small></h3><div class="mgrid">${cells}</div></div>`;
+  }
+  const upcoming = Object.keys(HOL).filter(d=>d.startsWith(String(y))).sort().map(d=>({d,h:holiday(d)})).filter(x=>x.h);
+  return `<div class="yearnav"><button class="btn small ghost" data-act="yprev">‹ ${y-1}</button><b>${y}</b><button class="btn small ghost" data-act="ynext">${y+1} ›</button></div>
+  <div class="card"><h2>Vacaciones ${y}</h2>
+    <div class="kpis" style="grid-template-columns:repeat(3,1fr)">
+      <div><div class="l note" style="margin:0">Disfrutadas</div><div style="font-size:22px;font-weight:700">${pasadas}</div></div>
+      <div><div class="l note" style="margin:0">Planificadas</div><div style="font-size:22px;font-weight:700">${futuras}</div></div>
+      <div><div class="l note" style="margin:0">Sin asignar</div><div style="font-size:22px;font-weight:700" class="${sin<0?"neg":""}">${num(sin,sin%1?1:0)}</div></div>
+    </div>
+    <div class="stack"><i style="width:${Math.min(100,pasadas/total*100)}%;background:var(--ok)"></i><i style="width:${Math.min(100,futuras/total*100)}%;background:var(--ok);opacity:.4"></i></div>
+    <div class="note">${num(total,total%1?1:0)} días disponibles (${va.base}${va.extra?" + "+va.extra+" por antigüedad":""}${va.anterior?" + "+num(va.anterior,va.anterior%1?1:0)+" del año anterior":""}${va.prop<1?", proporcional al alta":""}).${sin<0?` <b class="neg">Has planificado ${num(-sin,(-sin)%1?1:0)} días de más.</b>`:""}</div>
+    <div class="evo">${porMes.map((x,i)=>`<div>${x.p+x.f?`<em>${x.p+x.f}</em>`:""}${x.f?`<span class="b f" style="height:${x.f/maxM*60}px"></span>`:""}${x.p?`<span class="b" style="height:${x.p/maxM*60}px;${x.f?"border-radius:0":""}"></span>`:""}<span>${"EFMAMJJASOND"[i]}</span></div>`).join("")}</div>
+  </div>
+  <div class="card">
+    <div class="cal-mode"><button data-calmode="vac" class="${calMode==="vac"?"on":""}">Vacaciones</button><button data-calmode="tele" class="${calMode==="tele"?"on":""}">Teletrabajo</button><button data-calmode="edit" class="${calMode==="edit"?"on":""}">Editar día</button></div>
+    <div class="note" style="margin:6px 0 0">${calMode==="vac"?"Toca un día laborable para marcar o quitar vacaciones.":calMode==="tele"?`Toca un día laborable para marcar o quitar teletrabajo. Objetivo: ${num(Number(S.perfil.telePct)||0,0)} % de los días laborables efectivos (en cada mes verás marcados/objetivo).`:"Toca un día para registrar horas o cambiar su tipo."}</div>
+    <div class="legend"><span><i style="background:#c0392b"></i>Nacional</span><span><i style="background:#d9822b"></i>Aragón</span><span><i style="background:#8e44ad"></i>Local Zaragoza</span><span><i style="background:var(--ok)"></i>Vacaciones</span><span><i style="box-shadow:inset 0 0 0 2px var(--ok)"></i>Planificadas</span><span><i style="background:#2a9d8f"></i>Libre retribuido</span><span><i style="background:var(--accent-soft);box-shadow:inset 0 0 0 2px var(--accent)"></i>Teletrabajo</span></div>
+    ${y===2027?`<div class="note">Los festivos locales de 2027 (San Valero y Cincomarzada, con punto blanco) son provisionales hasta su publicación en el BOA.</div>`:""}
+    ${!HOL[y+"-01-01"]?`<div class="alert warn" style="margin-top:8px">No hay festivos oficiales cargados para ${y}. Márcalos con "Tocar = editar día" → Festivo.</div>`:""}
+  </div>
+  <div class="months">${months}</div>
+  ${upcoming.length?`<div class="card"><h2>Festivos ${y} · Zaragoza</h2>${upcoming.map(x=>`<div class="row"><span class="k">${new Date(x.d+"T12:00:00").toLocaleDateString("es-ES",{weekday:"short",day:"numeric",month:"short"})}</span><span>${esc(x.h.n)} <span class="tag">${HOL_TIPO[x.h.t]}${x.h.prov?" · prov.":""}</span></span></div>`).join("")}
+  <div class="note">En Aragón no hay festivos laborales de ámbito provincial: los "provinciales" que aparecen en algunos calendarios son días no lectivos escolares, no festivos para trabajar. Fuentes: BOE 28/10/2025, BOA 16/07/2025 y 20/11/2025 (2026); Decreto 163/2026, BOA 18/09/2026 (2027).</div></div>`:""}`;
+}
+
+function vVacaciones(){
+  const va=vacaciones(cur.y);
+  const list = va.fechas.length ? groupRanges(va.fechas).map(r=>`<div class="row"><span>${r}</span></div>`).join("") : `<div class="note">Aún no has marcado vacaciones en ${cur.y}.</div>`;
+  return `<div class="kpis" style="margin-bottom:12px">
+    <div class="kpi"><div class="l">Pendientes ${cur.y}</div><div class="v">${num(va.pend,va.pend%1?1:0)}</div><div class="s">días laborables</div></div>
+    <div class="kpi"><div class="l">Disfrutadas</div><div class="v">${va.usadas}</div><div class="s">de ${num(va.derecho+va.anterior,(va.derecho+va.anterior)%1?1:0)}</div></div>
+  </div>
+  <div class="card"><h2>Cómo se calculan</h2>
+    <div class="row"><span class="k">Días de vacaciones</span><span>${va.base} días laborables</span></div>
+    <div class="row"><span class="k">Adicionales por antigüedad</span><span>${va.ant===null?"indica tu antigüedad":"+"+va.extra+" ("+va.ant+" años)"}</span></div>
+    ${va.prop<1?`<div class="row"><span class="k">Proporción por alta en ${cur.y}</span><span>${num(va.prop*100,1)} %</span></div>`:""}
+    <div class="row"><span class="k">Pendientes de años anteriores</span><span>${num(va.anterior,va.anterior%1?1:0)}</span></div>
+    <div class="row tot"><span class="k">Total disponible</span><span>${num(va.derecho+va.anterior,(va.derecho+va.anterior)%1?1:0)} días</span></div>
+    <div class="note">${S.perfil.vacAntig!==false?"Incluye +1 día al cumplir 20 años de antigüedad y +1 más al cumplir 30 (convenio). ":""}Convenio (art. 35): 25 días laborables, fraccionables hasta en 4 periodos y, salvo pacto, de al menos 3 días laborables seguidos. Si te incorporas durante el año, te corresponde la parte proporcional (el convenio no fija el redondeo). Los días de baja por IT no cuentan como vacaciones. Los ${va.base} días que has indicado son condición de tu empresa.</div>
+  </div>
+  <div class="card"><h2>Días libres retribuidos ${cur.y}</h2>
+    ${va.libres.length?va.libres.map(l=>`<div class="row"><span class="k">${l.n}</span><span>${new Date(l.d+"T12:00:00").toLocaleDateString("es-ES",{weekday:"short",day:"numeric",month:"short"})} · ${l.ok?(l.alt?"fecha elegida":"libre"):"no laborable"}</span></div>`).join(""):`<div class="note">Indica tu fecha de nacimiento en Ajustes para contar el día de cumpleaños.</div>`}
+    ${S.perfil.cumple?`<label>Disfrutar el día de cumpleaños de ${cur.y} en otra fecha (opcional)</label><input type="date" data-cumplealt="${cur.y}" value="${esc((S.perfil.cumpleAlt||{})[cur.y]||"")}">`:""}
+    <div class="note">Se descuentan solos de tus horas teóricas y no restan vacaciones. Si tu cumpleaños cae en día no laborable, consulta con tu empresa si se traslada y pon aquí la fecha.</div>
+  </div>
+  <div class="card"><h2>Marcar un periodo</h2>
+    <div class="grid2"><div><label>Desde</label><input type="date" id="vDesde"></div><div><label>Hasta</label><input type="date" id="vHasta"></div></div>
+    <div class="btns" style="margin-top:12px"><button class="btn" data-act="vacAdd">Marcar vacaciones</button><button class="btn ghost" data-act="vacDel">Quitar</button></div>
+    <div class="note">Solo cuenta los días laborables de tu calendario y salta los festivos que hayas marcado.</div>
+  </div>
+  <div class="card"><h2>Disfrutadas en ${cur.y}</h2>${list}</div>`;
+}
+function groupRanges(dates){
+  const out=[]; let s=dates[0], p=dates[0];
+  const f=d=>new Date(d+"T12:00:00").toLocaleDateString("es-ES",{day:"numeric",month:"short"});
+  const next=(a,b)=>{ let d=new Date(a+"T12:00:00"); for(let i=0;i<5;i++){ d.setDate(d.getDate()+1); const k=dkey(d); if(k===b) return true; if(teorDia(k)>0 && (dayEntry(k)||{}).t!=="festivo" && !holiday(k) && !libreAuto(k)) return false; } return false; };
+  let n=1;
+  for(let i=1;i<=dates.length;i++){
+    if(i<dates.length && next(p,dates[i])){ p=dates[i]; n++; continue; }
+    out.push(s===p?`${f(s)} · 1 día`:`${f(s)} – ${f(p)} · ${n} días`);
+    s=dates[i]; p=dates[i]; n=1;
+  }
+  return out;
+}
+
+function vNomina(){
+  const n=nominaMes(cur.y,cur.m), p=S.perfil, nm=n.nm, h=n.h;
+  const real = nm.netoReal? Number(nm.netoReal):null;
+  const diff = real!==null ? real-n.neto : null;
+  const L=(k,v,cls="")=>`<div class="row ${cls}"><span class="k">${k}</span><span>${v}</span></div>`;
+  return `${n.warn.map(w=>`<div class="alert warn">${esc(w)}</div>`).join("")}
+  <div class="kpis" style="margin-bottom:12px">
+    <div class="kpi"><div class="l">Bruto estimado</div><div class="v">${eur(n.bruto)}</div><div class="s">${monthName(cur.y,cur.m)}</div></div>
+    <div class="kpi"><div class="l">Neto estimado</div><div class="v">${eur(n.neto)}</div><div class="s">${real!==null?`real ${eur(real)} (${diff>=0?"+":""}${eur(diff)})`:"añade tu neto real abajo"}</div></div>
+  </div>
+  ${real!==null && Math.abs(diff)>5?`<div class="alert ${diff<0?"bad":"info"}">Tu neto real difiere ${eur(Math.abs(diff))} de la estimación.${diff>0&&(n.fM<1||(S.perfil.fechaAlta&&S.perfil.fechaAlta.slice(0,4)===String(cur.y)))?" En el año de alta es normal: la empresa calcula la retención solo con lo que cobras ese año, mientras que la app aplica el tipo anual a propósito.":" Revisa conceptos, horas extra, IRPF y si la empresa prorratea las pagas."}</div>`:""}
+  <div class="card"><h2>Devengos</h2>
+    ${n.ba>0?L(`Salario base convenio (nivel ${p.nivel})`,eur(n.sb))+(n.mejora>0.005?L("Mejora voluntaria / compl. personal",eur(n.mejora)):""):L(`Salario base (nivel ${p.nivel}${Number(p.sbManual)>0?", importe manual":""})`,eur(n.sb))}
+    ${n.cpe?L(`Compl. por experiencia (${Math.min(10,Number(p.cpeAnios)||0)} años)`,eur(n.cpe)):""}
+    ${n.pae?L("Complemento PAE",eur(n.pae)):""}
+    ${n.otros?L("Otros complementos fijos",eur(n.otros)):""}
+    ${n.complSMI?L("Complemento hasta SMI",eur(n.complSMI)):""}
+    ${n.prorrata?L("Prorrata pagas extra",eur(n.prorrata)):""}
+    ${n.paga?L("Paga extraordinaria",eur(n.paga)):""}
+    ${n.heImporte?L(`Horas extra (${num(n.heHoras,2)} h × ${eur(n.precioHora*(1+(Number(p.heRecargo)||0)/100))})`,eur(n.heImporte)):""}
+    ${n.varObj?L(`Variable por objetivos${n.nm.varReal!==undefined&&n.nm.varReal!==""?" (importe real)":""}`,eur(n.varObj)):""}
+    ${n.varConv?L(`Incremento salarial variable convenio (${num(Number(p.varConvPct)||0,2)} %)`,eur(n.varConv)):""}
+    ${n.variable?L("Otros variables / comisiones",eur(n.variable)):""}
+    ${n.tele?L(`Compensación teletrabajo (${n.teleDias} días, ${n.teleSrc})`,eur(n.tele)):""}
+    ${n.km?L("Kilometraje",eur(n.km)):""}
+    ${n.dietas?L("Dietas y comidas",eur(n.dietas)):""}
+    ${L("Total devengado",eur(n.bruto),"tot")}
+  </div>
+  <div class="card"><h2>Deducciones</h2>
+    ${L("Contingencias comunes 4,70 %",eur(n.ss.cc))}
+    ${L(`MEI ${num(n.meiT,2)} %`,eur(n.ss.mei))}
+    ${L(`Desempleo ${p.contrato==="temporal"?"1,60":"1,55"} %`,eur(n.ss.des))}
+    ${L("Formación profesional 0,10 %",eur(n.ss.fp))}
+    ${n.ss.he?L("Horas extra 4,70 %",eur(n.ss.he)):""}
+    ${L(`IRPF ${num(n.irpfPct,2)} %${n.nm.irpfPct!==undefined&&n.nm.irpfPct!==""?" (este mes)":" (tipo anual)"}`,eur(n.irpf))}
+    ${L("Total deducciones",eur(n.ssTot+n.irpf),"tot")}
+    ${L("Líquido a percibir",eur(n.neto),"tot")}
+    <details style="margin-top:8px"><summary>Bases de cotización</summary>
+      ${L("Base contingencias comunes",eur(n.baseCC))}${L("Base AT/EP, desempleo y FP",eur(n.baseAT))}
+      ${L(`Retribución fija anual (${n.nP} pagas)`,eur(n.anual))}${L("Precio hora ordinaria",eur(n.precioHora))}
+    </details>
+  </div>
+  ${(()=>{ let b=0,nt=0,ss=0,ir=0,vr=0,tl=0,td=0,vc=0; for(let mm=1;mm<=12;mm++){ const x=nominaMes(cur.y,mm); vc+=x.varConv; b+=x.bruto; nt+=x.neto; ss+=x.ssTot; ir+=x.irpf; vr+=x.varObj; tl+=x.tele; td+=x.teleDias; }
+    return `<div class="card"><h2>Resumen anual ${cur.y}</h2>
+    ${L("Fijo anual",eur(n.fijoAnualRef))}
+    ${L(`Variable objetivos (${num(Number(p.varPct)||0,1)} % × ${num(Number(p.varCumpl)||0,0)} % cumplimiento)`,eur(vr))}
+    ${vc?L("Incremento variable convenio (septiembre)",eur(vc)):""}
+    ${tl?L(`Compensación teletrabajo (${td} días)`,eur(tl)):""}
+    ${L("Bruto anual estimado",eur(b),"tot")}
+    ${L("Seguridad Social",eur(ss))}${L("IRPF",eur(ir))}
+    ${L("Neto anual estimado",eur(nt),"tot")}
+    ${(()=>{ const yy=cur.y; if(yy<2026) return ""; const ya=lastYear(SB,yy-1); const base=SB[ya][Number(p.nivel)]*14*((Number(p.jornadaPct)||100)/100); const ap=base*0.015;
+      const alta=p.fechaAlta?new Date(p.fechaAlta+"T12:00:00"):null; const nuevo=alta&&alta>=new Date(2023,0,1);
+      return `<div class="row"><span class="k">Aportación de la empresa al seguro de jubilación (1,5 % del sueldo base de tabla ${yy-1})</span><span>${eur(ap)}</span></div><div class="note">No se cobra en nómina: va a un seguro colectivo (art. 67.C).${nuevo?" Como entraste en 2023 o después, la primera aportación se hace al cumplir 3 años ininterrumpidos en la empresa (y entonces se aportan todas las anualidades).":""}</div>`; })()}
+    <div class="note">Suma de los 12 meses con los datos que tengas en cada uno. Para cotizar, el variable se reparte entre los 12 meses (base de cotización), aunque se cobre de una vez. Tu empresa puede liquidarlo de otra forma: compruébalo en la nómina del mes en que lo cobres.</div></div>`; })()}
+  <div class="card"><h2>Datos de este mes</h2>
+    <div class="grid2">
+      <div><label>Horas extra a cobrar</label><input type="number" step="0.25" inputmode="decimal" data-nm="heHoras" value="${esc(nm.heHoras??"")}" placeholder="0"></div>
+      <div><label>Variable objetivos cobrado €</label><input type="number" step="0.01" inputmode="decimal" data-nm="varReal" value="${esc(nm.varReal??"")}" placeholder="${n.varProg?num(n.varProg,2)+" (previsto)":"0"}"></div>
+      <div><label>IRPF % de este mes</label><input type="number" step="0.01" inputmode="decimal" data-nm="irpfPct" value="${esc(nm.irpfPct??"")}" placeholder="${num(Number(p.irpf)||0,2)} (general)"></div>
+      <div><label>Otros variables / comisiones €</label><input type="number" step="0.01" inputmode="decimal" data-nm="variable" value="${esc(nm.variable??"")}" placeholder="0"></div>
+      <div><label>Días teletrabajo</label><input type="number" inputmode="numeric" data-nm="teleDias" value="${esc(nm.teleDias??"")}" placeholder="${n.teleDias} (${n.teleSrc})"></div>
+      <div><label>Km con vehículo propio</label><input type="number" inputmode="decimal" data-nm="km" value="${esc(nm.km??"")}" placeholder="0"></div>
+      <div><label>Dietas con pernocta</label><input type="number" inputmode="numeric" data-nm="dPern" value="${esc(nm.dPern??"")}" placeholder="0"></div>
+      <div><label>Dietas sin pernocta</label><input type="number" inputmode="numeric" data-nm="dSin" value="${esc(nm.dSin??"")}" placeholder="0"></div>
+      <div><label>Comidas (13 €)</label><input type="number" inputmode="numeric" data-nm="comidas" value="${esc(nm.comidas??"")}" placeholder="0"></div>
+    </div>
+    ${h.saldo>0.01?`<div class="note">Este mes llevas un saldo de +${fmtH(h.saldo)} sobre tu calendario. Solo son horas extra las que superan tu jornada pactada; anótalas arriba si corresponde.</div>`:""}
+  </div>
+  <div class="card"><h2>Tu nómina real</h2>
+    <div class="grid3">
+      <div><label>Bruto</label><input type="number" step="0.01" inputmode="decimal" data-nm="brutoReal" value="${esc(nm.brutoReal??"")}"></div>
+      <div><label>IRPF €</label><input type="number" step="0.01" inputmode="decimal" data-nm="irpfReal" value="${esc(nm.irpfReal??"")}"></div>
+      <div><label>Neto</label><input type="number" step="0.01" inputmode="decimal" data-nm="netoReal" value="${esc(nm.netoReal??"")}"></div>
+    </div>
+    <label>Notas</label><input type="text" data-nm="notas" value="${esc(nm.notas??"")}" placeholder="p. ej. atrasos, regularización IRPF…">
+  </div>
+  <div class="note">Estimación orientativa. El IRPF usa el porcentaje que pones en Ajustes, sácalo de tu última nómina. La compensación por teletrabajo no cotiza a la Seguridad Social (criterio de la Tesorería, concepto «gastos de teletrabajo») y, por defecto, se le aplica IRPF (cantidad fija sin justificar gastos); puedes cambiarlo en Ajustes. Las dietas y comidas del convenio se tratan como exentas.</div>`;
+}
+
+function vAjustes(){
+  const p=S.perfil;
+  const opt=(v,t,sel)=>`<option value="${v}" ${String(sel)===String(v)?"selected":""}>${t}</option>`;
+  const ty=lastYear(SB,now0.getFullYear());
+  return `<div class="card"><h2>Tu categoría</h2>
+    <label>Grupo y nivel retributivo</label>
+    <select data-p="nivel">${[1,2,3,4,5,6,7,8,9].map(n=>opt(n,`Nivel ${n} · ${GRUPOS[n]} · ${eur(SB[ty][n])}/mes`,p.nivel)).join("")}</select>
+    <div class="note">Importes de las tablas ${ty} del convenio (sueldo base mensual, 14 pagas).</div>
+    <div class="grid2">
+      <div><label>Salario bruto anual pactado €</label><input type="number" step="0.01" inputmode="decimal" data-p="brutoAnual" value="${esc(p.brutoAnual||"")}" placeholder="Usar tabla"></div>
+      <div><label>Número de pagas</label><select data-p="numPagas">${[12,14,15,16].map(n=>opt(n,n+" pagas",p.numPagas||14)).join("")}</select></div>
+    </div>
+    <div class="note">${Number(p.brutoAnual)>0?`Cada paga: <b>${eur(Number(p.brutoAnual)/(Number(p.numPagas)||14))}</b>. En la nómina se reparte entre el salario base del convenio y la mejora voluntaria. `:""}Déjalo vacío para usar solo la tabla del convenio. Los complementos de abajo se suman aparte: no los pongas si ya están incluidos en el bruto anual.</div>
+    <div class="grid2">
+      <div><label>Años de compl. por experiencia</label><input type="number" min="0" max="10" inputmode="numeric" data-p="cpeAnios" value="${esc(p.cpeAnios)}" ${CPE[ty][p.nivel]?"":"disabled placeholder='No aplica a tu nivel'"}></div>
+      <div><label>Complemento PAE €/mes</label><input type="number" step="0.01" inputmode="decimal" data-p="pae" value="${esc(p.pae||"")}" placeholder="0"></div>
+    </div>
+    <div class="note">${CPE[ty][p.nivel]?"":"<b>Tu nivel no tiene complemento por experiencia.</b> "}Complemento por experiencia (art. 42): solo niveles 4 a 8. Empieza a cobrarse el 1 de enero siguiente a tu primer año en la empresa. Se paga en 14 pagas: importe de la tabla × años en el nivel (máximo 10). Si subes de nivel, se cuenta un tercio del tiempo en el nivel anterior. El PAE mínimo solo es obligatorio en algunas empresas: pon lo que figure en tu nómina.</div>
+    <label>Otros complementos fijos €/mes</label><input type="number" step="0.01" inputmode="decimal" data-p="otros" value="${esc(p.otros||"")}" placeholder="0">
+    <label class="check"><input type="checkbox" data-p="complEnExtras" ${p.complEnExtras?"checked":""}> Los complementos también se cobran en las pagas extra</label>
+  </div>
+  <div class="card"><h2>Variable por objetivos</h2>
+    <div class="grid2">
+      <div><label>Variable anual (% del fijo)</label><input type="number" step="0.1" inputmode="decimal" data-p="varPct" value="${esc(p.varPct)}"></div>
+      <div><label>Cumplimiento previsto (%)</label><input type="number" step="1" inputmode="decimal" data-p="varCumpl" value="${esc(p.varCumpl)}"></div>
+      <div><label>Forma de pago</label><select data-p="varPago">${opt("anual","Un pago al año",p.varPago)}${opt("trimestral","Trimestral (mar, jun, sep, dic)",p.varPago)}${opt("mensual","Mensual",p.varPago)}</select></div>
+      <div><label>Primer año que genera variable</label><input type="number" inputmode="numeric" data-p="varDesde" value="${esc(p.varDesde||"")}" placeholder="desde el alta"></div>
+      <div><label>Mes de pago</label><select data-p="varMes" ${p.varPago!=="anual"?"disabled":""}>${[1,2,3,4,5,6,7,8,9,10,11,12].map(mm=>opt(mm,new Date(2026,mm-1,1).toLocaleDateString("es-ES",{month:"long"}),p.varMes)).join("")}</select></div>
+    </div>
+    <div class="note">${Number(p.varPct)>0?`Variable previsto: <b>${eur((Number(p.brutoAnual)||0)*(Number(p.varPct)||0)/100*(Number(p.varCumpl)||0)/100)}</b> al año${Number(p.brutoAnual)>0?"":" (sobre el fijo del convenio)"}. `:""}Se cobra en febrero y la app lo trata como el variable de los objetivos del año anterior, proporcional al tiempo que trabajaste ese año. Si entras a final de año, el primer febrero cobrarás solo la parte proporcional. Confirma con tu empresa cómo lo calcula; puedes cambiar el mes. Cuando lo cobres, anota el importe real en Nómina para ese mes.</div>
+  </div>
+  <div class="card"><h2>Incremento salarial variable del convenio</h2>
+    <label>Porcentaje que aplica tu empresa este año</label>
+    <select data-p="varConvPct">${[0,1,1.4,2,2.3].map(v=>opt(v,v?num(v,v%1?1:0)+" %":"0 % (absorbido o no aplica)",p.varConvPct||0)).join("")}</select>
+    <div class="note"><b>Art. 48 del convenio:</b> pago único en <b>septiembre</b>, no consolidable, sobre el salario base anual de tabla, según lo que crezcan las comisiones de la empresa respecto al año anterior: 1 % (1,25–8 %), 1,4 % (8,01–16 %), 2 % (16,01–20 %) y 2,3 % (más del 20 %). La empresa debe acreditar el cálculo antes del 30 de septiembre. Si no lo hace, corresponde el máximo. <b>Puede absorberse con una mejora voluntaria</b> (apartado 7), lo habitual si cobras por encima de tablas. Por eso viene en 0 %: cámbialo si te lo pagan.</div>
+  </div>
+  <div class="card"><h2>Contrato</h2>
+    <div class="grid2">
+      <div><label>Fecha de alta en la empresa</label><input type="date" data-p="fechaAlta" value="${esc(p.fechaAlta)}"></div>
+      <div><label>Fecha de antigüedad</label><input type="date" data-p="fechaAntiguedad" value="${esc(p.fechaAntiguedad)}"></div>
+      <div><label>Tipo de contrato</label><select data-p="contrato">${opt("indefinido","Indefinido",p.contrato)}${opt("temporal","Temporal",p.contrato)}</select></div>
+      <div><label>Jornada (%)</label><input type="number" min="1" max="100" inputmode="numeric" data-p="jornadaPct" value="${esc(p.jornadaPct)}"></div>
+    </div>
+  </div>
+  <div class="card"><h2>Horario de trabajo</h2>
+    <div class="alert info" style="margin:0 0 8px">L–J: 8:30–14:00 y 15:00–18:00 · V: 8:30–15:00 · Julio y agosto: 8:30–15:00 · Entrada flexible desde las 7:00 · Comida mínima 30′</div>
+    <label>Horas de trabajo efectivo por día (horario habitual)</label>
+    <div class="grid3" style="grid-template-columns:repeat(7,1fr);gap:4px">${[1,2,3,4,5,6,0].map(d=>`<div><div class="note center" style="margin:0 0 2px">${DOW[d]}</div><input style="padding:8px 1px;text-align:center;font-size:14px" type="number" step="0.25" inputmode="decimal" data-hd="${d}" value="${esc(p.horasDia[d])}"></div>`).join("")}</div>
+    <label class="check"><input type="checkbox" data-p="veranoOn" ${p.veranoOn?"checked":""}> Jornada intensiva</label>
+    <div class="grid2">
+      <div><label>Meses de jornada intensiva</label><input type="text" data-p="veranoMeses" value="${esc((p.veranoMeses||[]).join(", "))}" placeholder="7, 8"></div>
+      <div><label>Horas por día en intensiva</label><input type="number" step="0.25" inputmode="decimal" data-p="veranoHoras" value="${esc((p.horasVerano||{})[1]??"")}"></div>
+    </div>
+    <div class="grid2">
+      <div><label>Entrada flexible desde</label><input type="time" data-p="flexDesde" value="${esc(p.flexDesde)}"></div>
+      <div><label>Entrada habitual</label><input type="time" data-p="entradaHab" value="${esc(p.entradaHab)}"></div>
+      <div><label>Comida habitual (min)</label><input type="number" inputmode="numeric" data-p="pausaDef" value="${esc(p.pausaDef)}"></div>
+      <div><label>Comida mínima (min)</label><input type="number" inputmode="numeric" data-p="pausaMin" value="${esc(p.pausaMin)}"></div>
+    </div>
+    <label class="check"><input type="checkbox" data-p="autoSalida" ${p.autoSalida?"checked":""}> Fichar la salida automáticamente a la hora prevista</label>
+    <div class="note">Las horas son de trabajo efectivo, sin la comida. Con la flexibilidad cumples las mismas horas entrando antes o comiendo menos: si entras a las 7:00 y comes 30′, sales a las 16:00 de lunes a jueves. Al fichar la salida en jornada partida se aplica la comida habitual si no has indicado otra.<br><b>Convenio (art. 33):</b> 1.720 h efectivas al año, sin contar vacaciones, libranzas ni festivos. Recomienda no pasar de las 20:00 y dejar 12 h entre jornadas. Del 1 de junio al 30 de septiembre la jornada <i>puede</i> fijarse de 8:00 a 15:00, y tu empresa lo aplica en julio y agosto. Al pasar de jornada continua a partida, el convenio recomienda una pausa para comer de 1 a 2 h, y la compensación del almuerzo (mínimo 13 €) <i>puede</i> pactarse: tu flexibilidad de 30′ es un acuerdo de empresa. Además prevé reducir la jornada con <b>2 días de libranza al año</b> pactados con la empresa. Comprueba si son tu 24 y 31 de diciembre.</div>
+    ${(()=>{ const y=now0.getFullYear(); const ha=horasAnio(y); const va=vacaciones(y); let vacH=0, n=0; for(let d=new Date(y,0,1); d.getFullYear()===y && n<400; d.setDate(d.getDate()+1),n++){} 
+      const hd=p.horasDia, avg=[1,2,3,4,5].map(d=>Number(hd[d]||0)).reduce((a,b)=>a+b,0)/5; const est=ha.teor-Math.max(0,va.pend)*avg;
+      return `<div class="row" style="margin-top:8px"><span class="k">Horas teóricas ${y} (sin vacaciones)</span><span>${fmtH(ha.teor)}</span></div><div class="row"><span class="k">Estimado con ${num(va.derecho,va.derecho%1?1:0)} días de vacaciones</span><span>${fmtH(est)}</span></div><div class="row"><span class="k">Máximo convenio${fracServicio(`${y}-01-01`,`${y}-12-31`)<1?" (proporcional al alta)":""}</span><span>${fmtH(JORNADA_ANUAL*(Number(p.jornadaPct)||100)/100*fracServicio(`${y}-01-01`,`${y}-12-31`))}</span></div>`; })()}
+  </div>
+  <div class="card"><h2>Nómina</h2>
+    <div class="grid2">
+      <div><label>Retención IRPF anual (%)</label><input type="number" step="0.01" inputmode="decimal" data-p="irpf" value="${esc(p.irpf)}"></div>
+      <div><label>Pagas extra en los meses</label><input type="text" data-p="mesesExtra" value="${esc((p.mesesExtra||[]).join(", "))}" placeholder="6, 12"></div>
+    </div>
+    <div class="note">Pon el tipo que te correspondería con <b>un año completo de salario</b>. La app lo aplica todos los meses, también en el de alta, para no darte un neto más alto del real. Para calcularlo, usa el Servicio de cálculo de retenciones de la Agencia Tributaria (sede.agenciatributaria.gob.es) con tu salario anual y tu situación personal, o copia el de tu primera nómina de un mes completo. Si un mes quieres usar otro tipo, ponlo en Nómina → IRPF % de este mes.</div>
+    <label class="check"><input type="checkbox" data-p="prorrata" ${p.prorrata?"checked":""}> Cobro las pagas extra prorrateadas</label>
+    <div class="note"><b>Convenio (art. 43):</b> pagas extra el 15 de junio y el 15 de diciembre, salvo que se acuerde prorratearlas. Cada una incluye el salario base, el PAE, el CAI, el complemento por experiencia y el complemento personal. Si entras o sales durante el año, cobras la parte proporcional.</div>
+    <div class="grid2">
+      <div><label>Horas extra</label><select data-p="heModo">${opt("pago","Se pagan",p.heModo)}${opt("descanso","Se compensan con descanso",p.heModo)}</select></div>
+      <div><label>Recargo hora extra (%)</label><input type="number" inputmode="decimal" data-p="heRecargo" value="${esc(p.heRecargo)}"></div>
+    </div>
+    <div class="note"><b>Convenio (art. 37):</b> salvo pacto en contrario, las horas extra se compensan con descanso equivalente (1 hora por hora) dentro de los 4 meses siguientes. Por eso vienen en "Se compensan con descanso". Si tu empresa las paga, cambia la opción. El convenio no fija recargo, así que la ley exige como mínimo el valor de la hora ordinaria.</div>
+  </div>
+  <div class="card"><h2>Teletrabajo</h2>
+    <div class="grid2">
+      <div><label>Teletrabajo (% de la jornada)</label><input type="number" min="0" max="100" inputmode="numeric" data-p="telePct" value="${esc(p.telePct)}"></div>
+      <div><label>Compensación €/día</label><input type="number" step="0.01" inputmode="decimal" data-p="teleEur" value="${esc(p.teleEur)}"></div>
+    </div>
+    ${(()=>{ const y=now0.getFullYear(); let ef=0; for(let m=1;m<=12;m++) ef+=horasMes(y,m,false).efect; const vp=Math.max(0,vacaciones(y).pend); const dias=Math.round(Math.max(0,ef-vp)*(Number(p.telePct)||0)/100);
+      return `<div class="row" style="margin-top:8px"><span class="k">Días laborables efectivos ${y} (sin festivos ni vacaciones marcadas)</span><span>${ef}</span></div>
+      ${vp?`<div class="row"><span class="k">Menos vacaciones pendientes de marcar</span><span>−${num(vp,vp%1?1:0)}</span></div>`:""}<div class="row"><span class="k">Días de teletrabajo previstos (${num(Number(p.telePct)||0,0)} %)</span><span>${dias}</span></div>
+      <div class="row"><span class="k">Compensación anual estimada</span><span>${eur(dias*(Number(p.teleEur)||0)*(Number(p.jornadaPct)||100)/100)}</span></div>
+      <div class="note">${(Number(p.telePct)||0)>=30?"Con un "+num(Number(p.telePct),0)+" % es <b>teletrabajo regular</b> (30 % o más de la jornada en un periodo de 3 meses), así que se aplica el art. 9 del convenio.":"Por debajo del 30 % de la jornada (en 3 meses) no se considera teletrabajo regular según el convenio."}</div>`; })()}
+    <label class="check"><input type="checkbox" data-p="teleIRPF" ${p.teleIRPF!==false?"checked":""}> Aplicar IRPF a la compensación</label>
+    <div class="note"><b>Convenio (art. 9):</b> 1 € por día de teletrabajo efectivo a jornada completa, proporcional si la jornada es menor, actualizado cada 1 de enero con el % de subida de las tablas. No se paga en vacaciones, bajas, excedencias, libranzas ni festivos. Para 2026 resultan 1,07 € (1 € × 1,03 × 1,03 × 1,0125 = 1,0742), aplicando las subidas de tablas del art. 48. El convenio no publica la cifra redondeada: confírmala en tu nómina. Además, la empresa debe facilitarte los medios (equipo) o compensarlos y puede pedir factura. El teletrabajo es voluntario, se formaliza en un acuerdo escrito y su reversión requiere preaviso de al menos 30 días.<br><b>Cotización e IRPF:</b> la Tesorería trata esta compensación como gasto excluido de la base de cotización. En el IRPF, una cantidad fija sin justificar gastos suele tributar; la app le aplica IRPF por defecto. Si tu nómina hace otra cosa, cambia la casilla.</div>
+    <div class="note">Para planificar tus días de teletrabajo, usa <b>Calendario → Teletrabajo</b>.</div>
+  </div>
+  <div class="card"><h2>Vacaciones y días libres</h2>
+    <div class="grid2">
+      <div><label>Días de vacaciones al año</label><input type="number" inputmode="numeric" data-p="vacBase" value="${esc(p.vacBase)}"></div>
+      <div><label>Fecha de nacimiento</label><input type="date" data-p="cumple" value="${esc(p.cumple)}"></div>
+    </div>
+    <label class="check"><input type="checkbox" data-p="festivosZgz" ${p.festivosZgz!==false?"checked":""}> Usar festivos oficiales de Zaragoza capital (2026 y 2027)</label>
+    <label class="check"><input type="checkbox" data-p="dias2431" ${p.dias2431?"checked":""}> 24 y 31 de diciembre libres (si son laborables)</label>
+    <label class="check"><input type="checkbox" data-p="vacAntig" ${p.vacAntig!==false?"checked":""}> Sumar días adicionales por antigüedad (+1 a los 20 años, +1 a los 30)</label>
+    <label>Días pendientes del año anterior</label><input type="number" step="0.5" inputmode="decimal" data-p="vacAnterior" value="${esc(p.vacAnterior||"")}" placeholder="0">
+  </div>
+  <div class="card"><h2>Copia de seguridad</h2>
+    <div class="btns"><button class="btn sec" data-act="export">Descargar copia</button><button class="btn ghost" data-act="import">Restaurar copia</button></div>
+    <input type="file" id="impFile" accept="application/json,.json" class="hidden">
+    <div class="note">Tus datos se guardan solo en este dispositivo y navegador; no se envían a ningún servidor. Descarga una copia de vez en cuando (por ejemplo, cada mes) y guárdala en tu nube. Con ella puedes pasar los datos a otro móvil u ordenador.</div>
+  </div>
+  <div class="card"><h2>Fuentes y límites</h2>
+    <div class="note" style="margin-top:0">Convenio colectivo estatal de mediación de seguros privados 2023-2026 (BOE-A-2023-23188, 15/11/2023), revisado sobre el texto oficial: arts. 9 (teletrabajo), 33 (jornada), 35 (vacaciones), 37 (horas extra), 39-43 (salario, complementos y pagas), 46 (dietas), 48 (incrementos), 64 (IT) y 67 (jubilación), y anexo IV (tablas 2026). No se ha revisado la corrección de errores del BOE de 08/06/2024. Durante una baja (IT), la empresa completa hasta el 100 % de la retribución durante un máximo de 18 meses (art. 64). Por eso la app no reduce la nómina en esos días. SMI 2026: RD 126/2026. Cotización 2026: Orden PJC/297/2026.<br><br>Es una herramienta de control personal. No sustituye a tu nómina oficial ni al registro de jornada de la empresa. El IRPF se calcula con el porcentaje que pongas, no con el algoritmo de la AEAT. Ante cualquier discrepancia, consulta el texto del BOE, la representación sindical o la empresa.</div>
+  </div>`;
+}
+
+/* ============================ EDICIÓN DE DÍA ============================ */
+function openDay(date){
+  const e = dayEntry(date)||{}, t=tipoOf(date,e);
+  const dt=new Date(date+"T12:00:00");
+  const sh=document.getElementById("sheet");
+  sh.innerHTML = `<h3>${dt.toLocaleDateString("es-ES",{weekday:"long",day:"numeric",month:"long"})}</h3>
+    <div class="note" style="margin:0">Teórico según tu calendario: ${fmtH(teorDia(date))}${esVerano(date)&&teorDia(date)?" · jornada intensiva":""}${esPartida(date)?` · comida ${S.perfil.pausaMin}–${S.perfil.pausaDef}′ (si no indicas pausa se aplican ${S.perfil.pausaDef}′)`:""}</div>
+    <label>Tipo de día</label>
+    <div class="typepick" id="tp">${TIPOS.map(([k,l])=>`<button data-t="${k}" class="${k===t?"on":""}">${l}</button>`).join("")}</div>
+    <div id="hrs">
+      <div class="grid3">
+        <div><label>Entrada</label><input type="time" id="fE" value="${esc(e.e||"")}"></div>
+        <div><label>Salida</label><input type="time" id="fS" value="${esc(e.s||"")}"></div>
+        <div><label>Pausa (min)</label><input type="number" inputmode="numeric" id="fP" value="${esc(e.p??"")}" placeholder="${esPartida(date)?S.perfil.pausaDef:0}"></div>
+      </div>
+    </div>
+    <label>Nota</label><input type="text" id="fN" value="${esc(e.n||"")}" placeholder="opcional">
+    <div class="btns" style="margin-top:14px"><button class="btn" data-act="daySave" data-d="${date}">Guardar</button><button class="btn ghost" data-act="dayClose">Cancelar</button></div>
+    <button class="btn danger" style="margin-top:10px" data-act="dayDel" data-d="${date}">Borrar registro del día</button>`;
+  sh.dataset.t=t;
+  toggleHrs(t);
+  document.getElementById("sheetbg").classList.add("on");
+}
+function toggleHrs(t){ document.getElementById("hrs").style.display = NEUTROS.includes(t)&&t!=="libre" ? "none":"block"; }
+function closeSheet(){ document.getElementById("sheetbg").classList.remove("on"); render(); }
+
+function setDay(date, obj){
+  const k=date.slice(0,7), md=monthDoc(+k.slice(0,4),+k.slice(5,7));
+  if(obj===null) delete md.dias[date]; else md.dias[date]=obj;
+  save("m-"+k);
+}
+
+/* ============================ EVENTOS ============================ */
+document.addEventListener("click", ev=>{
+  const b=ev.target.closest("button,[data-day],[data-cal]"); if(!b) return;
+  if(b.dataset.tab){ tab=b.dataset.tab; render(); window.scrollTo(0,0); return; }
+  if(b.dataset.day){ openDay(b.dataset.day); return; }
+  if(b.dataset.calmode){ calMode=b.dataset.calmode; render(); return; }
+  if(b.dataset.cal){ calTap(b.dataset.cal); return; }
+  if(b.dataset.t){ document.querySelectorAll("#tp button").forEach(x=>x.classList.toggle("on",x===b)); document.getElementById("sheet").dataset.t=b.dataset.t; toggleHrs(b.dataset.t); return; }
+  const a=b.dataset.act; if(!a) return;
+  if(a==="yprev"){ cur.y--; calScrolled=true; render(); window.scrollTo(0,0); return; }
+  if(a==="ynext"){ cur.y++; calScrolled=true; render(); window.scrollTo(0,0); return; }
+  if(a==="prev"){ cur.m--; if(cur.m<1){cur.m=12;cur.y--;} render(); }
+  if(a==="next"){ cur.m++; if(cur.m>12){cur.m=1;cur.y++;} render(); }
+  if(a==="in"){ const tk=todayKey(); const e={...(dayEntry(tk)||{})}; e.e=hhmm(); delete e.s; if(!e.t) e.t=tipoOf(tk,null)==="libre"?"trabajo":tipoOf(tk,null); setDay(tk,e); render(); }
+  if(a==="out"){ const tk=todayKey(); const e={...(dayEntry(tk)||{})}; e.s=hhmm(); delete e.auto; if(e.p===undefined && esPartida(tk)) e.p=Number(S.perfil.pausaDef)||0; setDay(tk,e); render(); }
+  if(a==="pausa"){ const tk=todayKey(); const e={...(dayEntry(tk)||{})}; e.p=Number(b.dataset.v); setDay(tk,e); render(); }
+  if(a==="daySave"){
+    const t=document.getElementById("sheet").dataset.t;
+    const o={t}; const E=document.getElementById("fE").value, Sx=document.getElementById("fS").value, P=document.getElementById("fP").value, N=document.getElementById("fN").value.trim();
+    if(!(NEUTROS.includes(t)&&t!=="libre")){ if(E) o.e=E; if(Sx) o.s=Sx; if(P!=="") o.p=Number(P); else if(E&&Sx&&esPartida(b.dataset.d)) o.p=Number(S.perfil.pausaDef)||0; }
+    if(N) o.n=N;
+    setDay(b.dataset.d,o); closeSheet();
+  }
+  if(a==="dayDel"){ setDay(b.dataset.d,null); closeSheet(); }
+  if(a==="dayClose"){ closeSheet(); }
+  if(a==="vacAdd"||a==="vacDel"){
+    const d1=document.getElementById("vDesde").value, d2=document.getElementById("vHasta").value||d1;
+    if(!d1){ setStatus("Elige la fecha de inicio",true); return; }
+    let d=new Date(d1+"T12:00:00"), end=new Date(d2+"T12:00:00"), n=0;
+    while(d<=end && n<400){ const k=dkey(d), e=dayEntry(k);
+      if(a==="vacAdd"){ if(teorDia(k)>0 && !(e&&e.t==="festivo") && !(!e&&(libreAuto(k)||holiday(k)))) setDay(k,{t:"vacaciones",...(e&&e.n?{n:e.n}:{})}); }
+      else if(e&&e.t==="vacaciones") setDay(k,null);
+      d.setDate(d.getDate()+1); n++; }
+    render();
+  }
+  if(a==="export"){ const blob=new Blob([JSON.stringify(S,null,1)],{type:"application/json"}); const u=URL.createObjectURL(blob); const l=document.createElement("a"); l.href=u; l.download=`mi-control-copia-${todayKey()}.json`; document.body.appendChild(l); l.click(); l.remove(); setTimeout(()=>URL.revokeObjectURL(u),2000); setStatus("Copia descargada"); }
+  if(a==="import"){ document.getElementById("impFile").click(); }
+  if(a==="doImport"){ try{ const o=JSON.parse(document.getElementById("impTxt").value); if(!o.perfil) throw 0;
+      S.perfil={...DEFAULT_PERFIL,...o.perfil, horasDia:{...DEFAULT_PERFIL.horasDia,...((o.perfil||{}).horasDia||{})}}; S.months=o.months||{}; S.nominas=o.nominas||{};
+      save("perfil"); Object.keys(S.months).forEach(k=>save("m-"+k)); Object.keys(S.nominas).forEach(k=>save("nom-"+k));
+      closeSheet(); setStatus("Datos restaurados"); }catch(e){ setStatus("El texto no es una copia válida",true); } }
+});
+function calTap(date){
+  if(calMode==="edit"){ openDay(date); return; }
+  if(calMode==="tele"){
+    const e=dayEntry(date);
+    if(teorDia(date)<=0){ setStatus("Día no laborable",true); return; }
+    if(!e && (holiday(date)||libreAuto(date))){ setStatus("Festivo o día libre",true); return; }
+    if(e && e.t==="teletrabajo"){ const o={...e,t:"trabajo"}; if(!o.e&&!o.s&&!o.n) setDay(date,null); else setDay(date,o); render(); return; }
+    if(e && e.t && !["trabajo","teletrabajo"].includes(e.t)){ setStatus("Ese día ya está marcado como "+TIPOS.find(x=>x[0]===e.t)[1].toLowerCase(),true); return; }
+    setDay(date,{...(e||{}),t:"teletrabajo"}); render(); return;
+  }
+  const e=dayEntry(date);
+  if(e && e.t==="vacaciones"){ setDay(date, e.n?{t:"trabajo",n:e.n}:null); if(!e.n) setDay(date,null); render(); return; }
+  if(teorDia(date)<=0){ setStatus("Día no laborable",true); return; }
+  if(!e && holiday(date)){ setStatus(holiday(date).n+": festivo",true); return; }
+  if(!e && libreAuto(date)){ setStatus(libreAuto(date)+": día libre retribuido",true); return; }
+  if(e && (e.e||e.s)){ openDay(date); return; }
+  if(e && e.t && e.t!=="trabajo"){ openDay(date); return; }
+  setDay(date,{t:"vacaciones"}); setStatus("Vacaciones: "+new Date(date+"T12:00:00").toLocaleDateString("es-ES",{day:"numeric",month:"short"})); render();
+}
+function openText(txt){ const sh=document.getElementById("sheet"); sh.innerHTML=`<h3>Copia de seguridad</h3><div class="note">Selecciona y copia este texto.</div><textarea rows="8" readonly>${esc(txt)}</textarea><button class="btn ghost" style="margin-top:10px" data-act="dayClose">Cerrar</button>`; document.getElementById("sheetbg").classList.add("on"); }
+function openImport(){ const sh=document.getElementById("sheet"); sh.innerHTML=`<h3>Restaurar datos</h3><div class="note">Pega una copia de seguridad. Sustituirá los datos actuales.</div><textarea id="impTxt" rows="8"></textarea><div class="btns" style="margin-top:10px"><button class="btn" data-act="doImport">Restaurar</button><button class="btn ghost" data-act="dayClose">Cancelar</button></div>`; document.getElementById("sheetbg").classList.add("on"); }
+document.getElementById("sheetbg").addEventListener("click",ev=>{ if(ev.target.id==="sheetbg") closeSheet(); });
+
+document.addEventListener("change", ev=>{
+  const el=ev.target;
+  if(el.id==="impFile" && el.files[0]){ el.files[0].text().then(t=>{ try{ const o=JSON.parse(t); if(!o.perfil) throw 0;
+      S.perfil={...DEFAULT_PERFIL,...o.perfil, horasDia:{...DEFAULT_PERFIL.horasDia,...(o.perfil.horasDia||{})}}; S.months=o.months||{}; S.nominas=o.nominas||{};
+      lsSave(); render(); setStatus("Copia restaurada"); }catch(e){ setStatus("El archivo no es una copia válida",true); } }); el.value=""; return; }
+  if(el.dataset.p){
+    const k=el.dataset.p; let v = el.type==="checkbox"?el.checked:el.value;
+    if(["nivel","sbManual","cpeAnios","pae","otros","jornadaPct","irpf","heRecargo","teleEur","vacAnterior","vacBase","brutoAnual","numPagas","varPct","varCumpl","varMes","pausaDef","pausaMin","telePct","varConvPct","varDesde"].includes(k)) v = v===""?0:Number(v);
+    if(k==="mesesExtra"||k==="veranoMeses") v = String(v).split(/[^0-9]+/).map(Number).filter(n=>n>=1&&n<=12);
+    if(k==="veranoHoras"){ const h=Number(v)||0; S.perfil.horasVerano={0:0,1:h,2:h,3:h,4:h,5:h,6:0}; save("perfil"); render(); return; }
+    if(k==="cpeAnios") v=Math.min(10,Math.max(0,v));
+    S.perfil[k]=v; save("perfil"); render();
+  }
+  if(el.dataset.cumplealt){ S.perfil.cumpleAlt={...(S.perfil.cumpleAlt||{})}; if(el.value) S.perfil.cumpleAlt[el.dataset.cumplealt]=el.value; else delete S.perfil.cumpleAlt[el.dataset.cumplealt]; save("perfil"); render(); return; }
+  if(el.dataset.hd!==undefined){ S.perfil.horasDia={...S.perfil.horasDia,[el.dataset.hd]:Number(el.value)||0}; save("perfil"); render(); }
+  if(el.dataset.nm){
+    const y=String(cur.y), m=pad(cur.m); if(!S.nominas[y]) S.nominas[y]={};
+    const o={...(S.nominas[y][m]||{})}; const v=el.value;
+    if(v==="") delete o[el.dataset.nm]; else o[el.dataset.nm]= el.type==="number"?Number(v):v;
+    S.nominas[y][m]=o; save("nom-"+y); render();
+  }
+});
+
+setInterval(()=>{ const c=document.getElementById("clock"); if(c) c.textContent=hhmm(); if(autoClose() && !document.querySelector(".sheet-bg.on") && !isTyping()) render(); },15000);
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden && autoClose()) render(); });
+render();
+initStore();
+</script>
+</body>
+</html>
