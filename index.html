@@ -27,7 +27,7 @@
 html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
 body{padding:env(safe-area-inset-top) env(safe-area-inset-right) calc(76px + env(safe-area-inset-bottom)) env(safe-area-inset-left)}
 .wrap{max-width:540px;margin:0 auto;padding:12px 14px 20px}
-header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 2px 10px}
+header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 2px 10px;position:sticky;top:0;z-index:8;background:var(--bg);margin:0 -2px;box-shadow:0 8px 8px -8px rgba(0,0,0,.12)}
 header h1{font-size:18px;margin:0;font-weight:650;letter-spacing:-.01em}
 header .sub{font-size:12px;color:var(--muted)}
 .monthnav{display:flex;align-items:center;gap:6px}
@@ -130,6 +130,13 @@ details summary{cursor:pointer;font-weight:600;font-size:14px;padding:4px 0}
 .evo span.b{width:100%;background:var(--ok);border-radius:4px 4px 0 0;min-height:2px}
 .evo span.b.f{background:transparent;box-shadow:inset 0 0 0 2px var(--ok)}
 .evo em{font-style:normal;font-weight:700;color:var(--ink);font-size:11px}
+#printArea{display:none}
+@media print{
+  body{padding:0!important;background:#fff!important}
+  body > *:not(#printArea){display:none!important}
+  #printArea{display:block!important}
+  @page{size:A4;margin:12mm}
+}
 </style>
 </head>
 <body>
@@ -214,6 +221,7 @@ const HOL = {
 const HOL_TIPO = {nac:"Nacional",aut:"Aragón",loc:"Local Zaragoza"};
 function holiday(date){ if(S.perfil.festivosZgz===false) return null; const h=HOL[date]; return h?{n:h[0],t:h[1],prov:!!h[2]}:null; }
 const NEUTROS = ["vacaciones","festivo","permiso","baja","libre","libre_ret"];
+const APP_VERSION = "v16";
 const DOW = ["dom","lun","mar","mié","jue","vie","sáb"];
 
 function lastYear(tbl,y){ const ys=Object.keys(tbl).map(Number).sort(); if(tbl[y]) return y; return y>ys[ys.length-1]?ys[ys.length-1]:ys[0]; }
@@ -227,7 +235,8 @@ const DEFAULT_PERFIL = {
   veranoOn:true, veranoMeses:[7,8], horasVerano:{0:0,1:6.5,2:6.5,3:6.5,4:6.5,5:6.5,6:0},
   pausaDef:60, pausaMin:30, autoSalida:true, flexDesde:"07:00", entradaHab:"08:30",
   fechaAlta:"", fechaAntiguedad:"", vacAnterior:0,
-  vacBase:26, vacAntig:true, cumple:"", cumpleAlt:{}, dias2431:true, festivosZgz:true
+  vacBase:26, vacAntig:true, cumple:"", cumpleAlt:{}, dias2431:true, festivosZgz:true,
+  empNombre:"", empCif:"", empDom:"", empCcc:"", trabNombre:"", trabNif:"", trabNaf:"", trabPuesto:"", grupoCot:""
 };
 let S = { perfil: structuredClone(DEFAULT_PERFIL), months:{}, nominas:{} };
 let tab = "inicio"; let calMode="vac"; let calScrolled=false;
@@ -271,7 +280,18 @@ async function initStore(){
   try{ if(navigator.storage && navigator.storage.persist) await navigator.storage.persist(); }catch(e){}
   try{ localStorage.setItem("__t","1"); localStorage.removeItem("__t"); setStatus("Datos guardados en este dispositivo"); }
   catch(e){ banner(`<div class="alert bad">Este navegador no permite guardar datos (¿modo privado?). Lo que anotes se perderá al cerrar.</div>`); }
-  if("serviceWorker" in navigator){ try{ navigator.serviceWorker.register("sw.js"); }catch(e){} }
+  if("serviceWorker" in navigator){
+    try{
+      const habia = !!navigator.serviceWorker.controller;
+      const reg = await navigator.serviceWorker.register("sw.js", {updateViaCache:"none"});
+      let recargando=false;
+      navigator.serviceWorker.addEventListener("controllerchange", ()=>{ if(habia && !recargando){ recargando=true; location.reload(); } });
+      const buscar = ()=>{ try{ reg.update(); }catch(e){} };
+      buscar();
+      document.addEventListener("visibilitychange", ()=>{ if(!document.hidden) buscar(); });
+      window.__buscarActualizacion = buscar;
+    }catch(e){}
+  }
 }
 function isTyping(){ const a=document.activeElement; return a && ["INPUT","SELECT","TEXTAREA"].includes(a.tagName); }
 function banner(h){ document.getElementById("banner").innerHTML=h; }
@@ -479,6 +499,7 @@ function render(){
   if(tab==="calendario" && !calScrolled){ calScrolled=true; const t=document.querySelector(".mon.curmon"); if(t) setTimeout(()=>t.scrollIntoView({block:"start"}),30); }
 }
 
+function resumenAnual(y){ let b=0,nt=0,ss=0,ir=0; for(let m=1;m<=12;m++){ const x=nominaMes(y,m); b+=x.bruto; nt+=x.neto; ss+=x.ssTot; ir+=x.irpf; } return {b,nt,ss,ir}; }
 function vInicio(){
   const tk=todayKey(), e=dayEntry(tk), isCur = cur.y===now0.getFullYear() && cur.m===now0.getMonth()+1;
   const h=horasMes(cur.y,cur.m,isCur), n=nominaMes(cur.y,cur.m), va=vacaciones(cur.y), ya=horasAnio(cur.y);
@@ -507,6 +528,10 @@ function vInicio(){
     <div class="kpi"><div class="l">Vacaciones ${cur.y}</div><div class="v">${num(va.pend,va.pend%1?1:0)} d</div><div class="s">pendientes de ${num(va.derecho+va.anterior,(va.derecho+va.anterior)%1?1:0)}</div></div>
     <div class="kpi"><div class="l">Neto estimado</div><div class="v">${eur(n.neto)}</div><div class="s">${n.extraMes?"incluye paga extra":"bruto "+eur(n.bruto)}</div></div>
   </div>
+  ${(()=>{ const r=resumenAnual(cur.y); return r.b>0?`<div class="card" style="margin-top:12px"><h2>Previsión anual ${cur.y}</h2>
+    <div class="row"><span class="k">Bruto anual</span><span>${eur(r.b)}</span></div>
+    <div class="row"><span class="k">Seguridad Social + IRPF</span><span class="neg">−${fmtNum(r.ss+r.ir,2)}\u00a0€</span></div>
+    <div class="row tot"><span class="k">Neto anual</span><span class="pos">${eur(r.nt)}</span></div></div>`:""; })()}
   <div class="card" style="margin-top:12px"><h2>Jornada anual ${cur.y}</h2>
     <div class="row"><span class="k">Horas trabajadas en el año</span><span>${fmtH(ya.trab)}</span></div>
     <div class="row"><span class="k">Máximo convenio (1.720 h${pctJ<1?" × "+num(pctJ*100,0)+" %":""}${fA<1?", proporcional al alta":""})</span><span>${fmtH(maxA)}</span></div>
@@ -631,12 +656,124 @@ function groupRanges(dates){
   return out;
 }
 
+/* ======================= RECIBO DE SALARIOS (modelo Orden ESS/2098/2014) ======================= */
+const RECIBO_CSS = `
+.rec{font:11px/1.35 Arial,Helvetica,sans-serif;color:#111;background:#fff;max-width:780px;margin:0 auto;padding:14px;position:relative}
+.rec h1{font-size:14px;margin:0 0 8px;text-align:center;letter-spacing:.04em}
+.rec .wm{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:0}
+.rec .wm span{transform:rotate(-28deg);font-size:64px;font-weight:800;color:rgba(200,0,0,.10);letter-spacing:.08em}
+.rec table{width:100%;border-collapse:collapse;position:relative;z-index:1}
+.rec td,.rec th{border:1px solid #444;padding:3px 5px;vertical-align:top}
+.rec th{background:#eee;text-align:left;font-weight:700}
+.rec .r{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.rec .sec td{background:#f6f6f6;font-weight:700}
+.rec .tot td{font-weight:700;background:#f0f0f0}
+.rec .neg{color:#b00020}
+.rec .small{font-size:9.5px;color:#444}
+.rec .grid{display:grid;grid-template-columns:1fr 1fr;gap:0;position:relative;z-index:1}
+.rec .box{border:1px solid #444;padding:5px 6px;margin:-1px 0 0 -1px}
+.rec .box b{display:inline-block;min-width:92px}
+.rec .sign{height:46px}
+.rec .aviso{border:1px dashed #b00020;color:#b00020;padding:5px 7px;margin-top:8px;font-size:10px;position:relative;z-index:1}
+`;
+function reciboHTML(y,m){
+  const n=nominaMes(y,m), p=S.perfil;
+  const fd=d=>d?new Date(d+"T12:00:00").toLocaleDateString("es-ES"):"—";
+  const ini=`${y}-${pad(m)}-01`, fin=finMes(y,m);
+  const desde = altaF() && altaF()>ini && altaF()<=fin ? altaF() : ini;
+  const dias = Math.round((new Date(fin+"T12:00:00")-new Date(desde+"T12:00:00"))/86400000)+1;
+  const e=v=>fmtNum(v,2), row=(c,imp,base,tipo)=>`<tr><td>${c}</td><td class="r">${base!==undefined&&base!==null?e(base):""}</td><td class="r">${tipo!==undefined&&tipo!==null?fmtNum(tipo,2)+" %":""}</td><td class="r">${e(imp)}</td></tr>`;
+  const sal=[], noSal=[];
+  if(n.sb) sal.push(["Salario base (nivel "+p.nivel+")",n.sb]);
+  if(n.mejora>0.005) sal.push(["Mejora voluntaria / complemento personal",n.mejora]);
+  if(n.cpe) sal.push(["Complemento por experiencia (CPE)",n.cpe]);
+  if(n.pae) sal.push(["Complemento PAE",n.pae]);
+  if(n.otros) sal.push(["Otros complementos",n.otros]);
+  if(n.complSMI) sal.push(["Complemento hasta SMI",n.complSMI]);
+  if(n.heImporte) sal.push(["Horas extraordinarias ("+fmtNum(n.heHoras,2)+" h)",n.heImporte]);
+  if(n.varObj) sal.push(["Retribución variable por objetivos",n.varObj]);
+  if(n.varConv) sal.push(["Incremento salarial variable (art. 48 convenio)",n.varConv]);
+  if(n.variable) sal.push(["Otras percepciones variables",n.variable]);
+  if(n.paga) sal.push(["Gratificación extraordinaria ("+(m===6?"junio":m===12?"Navidad":"extra")+")",n.paga]);
+  if(n.prorrata) sal.push(["Prorrata gratificaciones extraordinarias",n.prorrata]);
+  if(n.tele) noSal.push(["Compensación gastos de teletrabajo ("+n.teleDias+" días)",n.tele]);
+  if(n.dietas) noSal.push(["Dietas y gastos de manutención",n.dietas]);
+  if(n.km) noSal.push(["Gastos de locomoción (kilometraje)",n.km]);
+  const totSal=sal.reduce((a,x)=>a+x[1],0), totNo=noSal.reduce((a,x)=>a+x[1],0);
+  const remMes = n.fijos*n.fM + n.variable + n.kmExceso, prorrBase=Math.max(0,n.baseCC-remMes);
+  const desTipo = p.contrato==="temporal"?1.60:1.55, desEmp = p.contrato==="temporal"?6.70:5.50;
+  const emp = [["Contingencias comunes",n.baseCC,23.60],["MEI",n.baseCC,0.75],["Desempleo",n.baseAT,desEmp],["Formación profesional",n.baseAT,0.60],["FOGASA",n.baseAT,0.20]];
+  if(n.heImporte) emp.push(["Horas extraordinarias",n.heImporte,23.60]);
+  const totEmp = emp.reduce((a,x)=>a+x[1]*x[2]/100,0);
+  const periodo = new Date(y,m-1,1).toLocaleDateString("es-ES",{month:"long",year:"numeric"});
+  return `<div class="rec">
+  <div class="wm"><span>SIMULACIÓN</span></div>
+  <h1>RECIBO INDIVIDUAL JUSTIFICATIVO DEL PAGO DE SALARIOS</h1>
+  <div class="grid">
+    <div class="box"><div><b>Empresa:</b> ${esc(p.empNombre||"—")}</div><div><b>Domicilio:</b> ${esc(p.empDom||"—")}</div><div><b>CIF:</b> ${esc(p.empCif||"—")}</div><div><b>CCC:</b> ${esc(p.empCcc||"—")}</div></div>
+    <div class="box"><div><b>Trabajador/a:</b> ${esc(p.trabNombre||"—")}</div><div><b>NIF:</b> ${esc(p.trabNif||"—")}</div><div><b>Nº afiliación SS:</b> ${esc(p.trabNaf||"—")}</div><div><b>Categoría:</b> ${esc(p.trabPuesto||("Grupo "+GRUPOS[p.nivel]+", nivel "+p.nivel))}</div><div><b>Grupo cotización:</b> ${esc(p.grupoCot||"—")}</div><div><b>Antigüedad:</b> ${fd(p.fechaAntiguedad||p.fechaAlta)}</div></div>
+    <div class="box" style="grid-column:1/3"><b>Periodo de liquidación:</b> del ${fd(desde)} al ${fd(fin)} (${periodo}) · <b style="min-width:0">Total días:</b> ${dias} · <b style="min-width:0">Convenio:</b> Mediación de seguros privados (estatal)</div>
+  </div>
+  <table style="margin-top:8px">
+    <tr><th>I. DEVENGOS</th><th class="r" style="width:90px"></th><th class="r" style="width:60px"></th><th class="r" style="width:95px">Importe (€)</th></tr>
+    <tr class="sec"><td colspan="4">1. Percepciones salariales</td></tr>
+    ${sal.map(x=>row(x[0],x[1])).join("")||'<tr><td colspan="4">—</td></tr>'}
+    <tr class="sec"><td colspan="4">2. Percepciones no salariales</td></tr>
+    ${noSal.map(x=>row(x[0],x[1])).join("")||'<tr><td colspan="4">—</td></tr>'}
+    <tr class="tot"><td colspan="3">A. TOTAL DEVENGADO</td><td class="r">${e(n.bruto)}</td></tr>
+    <tr><th>II. DEDUCCIONES</th><th class="r">Base (€)</th><th class="r">Tipo</th><th class="r">Importe (€)</th></tr>
+    <tr class="sec"><td colspan="4">1. Aportación del trabajador a las cotizaciones a la Seguridad Social y conceptos de recaudación conjunta</td></tr>
+    ${row("Contingencias comunes",n.ss.cc,n.baseCC,4.70)}
+    ${row("Mecanismo de Equidad Intergeneracional (MEI)",n.ss.mei,n.baseCC,n.meiT)}
+    ${row("Desempleo",n.ss.des,n.baseAT,desTipo)}
+    ${row("Formación profesional",n.ss.fp,n.baseAT,0.10)}
+    ${n.ss.he?row("Horas extraordinarias",n.ss.he,n.heImporte,4.70):""}
+    <tr><td colspan="3">Total aportaciones</td><td class="r">${e(n.ssTot)}</td></tr>
+    <tr class="sec"><td colspan="4">2. Impuesto sobre la Renta de las Personas Físicas</td></tr>
+    ${row("Retención IRPF",n.irpf,n.sujeto,n.irpfPct)}
+    <tr class="sec"><td colspan="4">3. Anticipos · 4. Valor de los productos recibidos en especie · 5. Otras deducciones</td></tr>
+    <tr><td colspan="3">—</td><td class="r">${e(0)}</td></tr>
+    <tr class="tot"><td colspan="3">B. TOTAL A DEDUCIR</td><td class="r neg">${e(n.ssTot+n.irpf)}</td></tr>
+    <tr class="tot"><td colspan="3" style="font-size:12px">LÍQUIDO TOTAL A PERCIBIR (A − B)</td><td class="r" style="font-size:12px">${e(n.neto)}</td></tr>
+  </table>
+  <div class="grid" style="margin-top:8px">
+    <div class="box sign">Firma y sello de la empresa</div>
+    <div class="box sign">Recibí<br><span class="small">Fecha: ____ / ____ / ________</span></div>
+  </div>
+  <table style="margin-top:8px">
+    <tr><th colspan="2">DETERMINACIÓN DE LAS BASES DE COTIZACIÓN A LA SEGURIDAD SOCIAL Y CONCEPTOS DE RECAUDACIÓN CONJUNTA Y DE LA BASE SUJETA A RETENCIÓN DEL IRPF</th><th class="r">Tipo empresa</th><th class="r">Aportación empresa (€)</th></tr>
+    <tr><td>1. Base de cotización por contingencias comunes<br><span class="small">Remuneración mensual ${e(remMes)} + prorrata pagas extraordinarias ${e(prorrBase)}</span></td><td class="r">${e(n.baseCC)}</td><td class="r">23,60 %</td><td class="r">${e(n.baseCC*0.236)}</td></tr>
+    <tr><td>MEI</td><td class="r">${e(n.baseCC)}</td><td class="r">0,75 %</td><td class="r">${e(n.baseCC*0.0075)}</td></tr>
+    <tr><td>2. Base de cotización por contingencias profesionales y conceptos de recaudación conjunta (AT y EP, desempleo, FP, FOGASA)</td><td class="r">${e(n.baseAT)}</td><td class="r"></td><td class="r"></td></tr>
+    <tr><td>&nbsp;&nbsp;AT y EP</td><td class="r">${e(n.baseAT)}</td><td class="r">según CNAE</td><td class="r">—</td></tr>
+    <tr><td>&nbsp;&nbsp;Desempleo</td><td class="r">${e(n.baseAT)}</td><td class="r">${fmtNum(desEmp,2)} %</td><td class="r">${e(n.baseAT*desEmp/100)}</td></tr>
+    <tr><td>&nbsp;&nbsp;Formación profesional</td><td class="r">${e(n.baseAT)}</td><td class="r">0,60 %</td><td class="r">${e(n.baseAT*0.006)}</td></tr>
+    <tr><td>&nbsp;&nbsp;Fondo de Garantía Salarial</td><td class="r">${e(n.baseAT)}</td><td class="r">0,20 %</td><td class="r">${e(n.baseAT*0.002)}</td></tr>
+    <tr><td>3. Cotización adicional por horas extraordinarias</td><td class="r">${e(n.heImporte)}</td><td class="r">${n.heImporte?"23,60 %":""}</td><td class="r">${n.heImporte?e(n.heImporte*0.236):""}</td></tr>
+    <tr><td>4. Base sujeta a retención del IRPF</td><td class="r">${e(n.sujeto)}</td><td class="r"></td><td class="r"></td></tr>
+    <tr class="tot"><td colspan="3">Total aportación empresa (sin AT y EP)</td><td class="r">${e(totEmp)}</td></tr>
+  </table>
+  <div class="aviso"><b>SIMULACIÓN — NO VÁLIDO COMO RECIBO OFICIAL.</b> Documento orientativo generado por la app "Mi control" con el convenio estatal de mediación de seguros privados y la normativa de cotización de ${y}. El IRPF se calcula con el porcentaje indicado por el usuario. La cotización por AT y EP depende de la actividad (CNAE) de la empresa y no se incluye. Generado el ${new Date().toLocaleDateString("es-ES")}.</div>
+</div>`;
+}
+function abrirRecibo(){
+  const html = reciboHTML(cur.y,cur.m);
+  document.getElementById("printArea").innerHTML = `<style>${RECIBO_CSS}</style>${html}`;
+  const sh=document.getElementById("sheet");
+  sh.innerHTML = `<h3>Recibo de ${monthName(cur.y,cur.m)}</h3>
+    <div class="note" style="margin-top:0">Formato del recibo de salarios oficial (Orden ESS/2098/2014). Rellena los datos de empresa y trabajador en Ajustes → Datos para el recibo.</div>
+    <div class="btns" style="margin:10px 0"><button class="btn" data-act="recPrint">Imprimir / PDF</button><button class="btn sec" data-act="recDown">Descargar</button></div>
+    <div style="overflow:auto;border:1px solid var(--line);border-radius:10px;background:#fff"><style>${RECIBO_CSS}</style>${html}</div>
+    <button class="btn ghost" style="margin-top:10px" data-act="dayClose">Cerrar</button>`;
+  document.getElementById("sheetbg").classList.add("on");
+}
 function vNomina(){
   const n=nominaMes(cur.y,cur.m), p=S.perfil, nm=n.nm, h=n.h;
   const real = nm.netoReal? Number(nm.netoReal):null;
   const diff = real!==null ? real-n.neto : null;
   const L=(k,v,cls="")=>`<div class="row ${cls}"><span class="k">${k}</span><span>${v}</span></div>`;
   return `${n.warn.map(w=>`<div class="alert warn">${esc(w)}</div>`).join("")}
+  <button class="btn sec" style="margin-bottom:12px" data-act="recibo">📄 Ver / exportar recibo de este mes</button>
   <div class="kpis" style="margin-bottom:12px">
     <div class="kpi"><div class="l">Bruto estimado</div><div class="v">${eur(n.bruto)}</div><div class="s">${monthName(cur.y,cur.m)}</div></div>
     <div class="kpi"><div class="l">Neto estimado</div><div class="v">${eur(n.neto)}</div><div class="s">${real!==null?`real ${eur(real)} (<span class="${diff<0?"neg":"pos"}">${diff>=0?"+":""}${eur(diff)}</span>)`:"añade tu neto real abajo"}</div></div>
@@ -675,6 +812,7 @@ function vNomina(){
   </div>
   ${(()=>{ let b=0,nt=0,ss=0,ir=0,vr=0,tl=0,td=0,vc=0; for(let mm=1;mm<=12;mm++){ const x=nominaMes(cur.y,mm); vc+=x.varConv; b+=x.bruto; nt+=x.neto; ss+=x.ssTot; ir+=x.irpf; vr+=x.varObj; tl+=x.tele; td+=x.teleDias; }
     return `<div class="card"><h2>Resumen anual ${cur.y}</h2>
+    <div class="kpis" style="margin-bottom:8px"><div class="kpi"><div class="l">Bruto anual</div><div class="v">${eur(b)}</div></div><div class="kpi"><div class="l">Neto anual</div><div class="v pos">${eur(nt)}</div><div class="s">${eur(nt/12)} de media al mes</div></div></div>
     ${L("Fijo anual",eur(n.fijoAnualRef))}
     ${L(`Variable objetivos (${num(Number(p.varPct)||0,1)} % × ${num(Number(p.varCumpl)||0,0)} % cumplimiento)`,eur(vr))}
     ${vc?L("Incremento variable convenio (septiembre)",eur(vc)):""}
@@ -814,10 +952,24 @@ function vAjustes(){
     <label class="check"><input type="checkbox" data-p="vacAntig" ${p.vacAntig!==false?"checked":""}> Sumar días adicionales por antigüedad (+1 a los 20 años, +1 a los 30)</label>
     <label>Días pendientes del año anterior</label><input type="number" step="0.5" inputmode="decimal" data-p="vacAnterior" value="${esc(p.vacAnterior||"")}" placeholder="0">
   </div>
+  <div class="card"><h2>Datos para el recibo</h2>
+    <div class="note" style="margin-top:0">Solo se usan para el recibo exportable y se guardan únicamente en este dispositivo.</div>
+    <label>Empresa</label><input type="text" data-p="empNombre" value="${esc(p.empNombre)}">
+    <div class="grid2"><div><label>CIF</label><input type="text" data-p="empCif" value="${esc(p.empCif)}"></div><div><label>Código cuenta cotización</label><input type="text" data-p="empCcc" value="${esc(p.empCcc)}"></div></div>
+    <label>Domicilio de la empresa</label><input type="text" data-p="empDom" value="${esc(p.empDom)}">
+    <label>Nombre y apellidos</label><input type="text" data-p="trabNombre" value="${esc(p.trabNombre)}">
+    <div class="grid2"><div><label>NIF</label><input type="text" data-p="trabNif" value="${esc(p.trabNif)}"></div><div><label>Nº afiliación SS</label><input type="text" data-p="trabNaf" value="${esc(p.trabNaf)}"></div></div>
+    <div class="grid2"><div><label>Categoría / puesto</label><input type="text" data-p="trabPuesto" value="${esc(p.trabPuesto)}" placeholder="Grupo II.B, nivel 3"></div><div><label>Grupo de cotización</label><input type="text" data-p="grupoCot" value="${esc(p.grupoCot)}" placeholder="p. ej. 3"></div></div>
+  </div>
   <div class="card"><h2>Copia de seguridad</h2>
     <div class="btns"><button class="btn sec" data-act="export">Descargar copia</button><button class="btn ghost" data-act="import">Restaurar copia</button></div>
     <input type="file" id="impFile" accept="application/json,.json" class="hidden">
     <div class="note">Tus datos se guardan solo en este dispositivo y navegador; no se envían a ningún servidor. Descarga una copia de vez en cuando (por ejemplo, cada mes) y guárdala en tu nube. Con ella puedes pasar los datos a otro móvil u ordenador.</div>
+  </div>
+  <div class="card"><h2>Versión</h2>
+    <div class="row"><span class="k">Versión de la app</span><span>${APP_VERSION}</span></div>
+    <button class="btn sec" style="margin-top:8px" data-act="actualizar">Buscar actualización</button>
+    <div class="note">La app busca actualizaciones sola cada vez que la abres con conexión y se recarga si hay una nueva. Tus datos no se pierden.</div>
   </div>
   <div class="card"><h2>Fuentes y límites</h2>
     <div class="note" style="margin-top:0">Convenio colectivo estatal de mediación de seguros privados 2023-2026 (BOE-A-2023-23188, 15/11/2023), revisado sobre el texto oficial: arts. 9 (teletrabajo), 33 (jornada), 35 (vacaciones), 37 (horas extra), 39-43 (salario, complementos y pagas), 46 (dietas), 48 (incrementos), 64 (IT) y 67 (jubilación), y anexo IV (tablas 2026). No se ha revisado la corrección de errores del BOE de 08/06/2024. Durante una baja (IT), la empresa completa hasta el 100 % de la retribución durante un máximo de 18 meses (art. 64). Por eso la app no reduce la nómina en esos días. SMI 2026: RD 126/2026. Cotización 2026: Orden PJC/297/2026.<br><br>Es una herramienta de control personal. No sustituye a tu nómina oficial ni al registro de jornada de la empresa. El IRPF se calcula con el porcentaje que pongas, no con el algoritmo de la AEAT. Ante cualquier discrepancia, consulta el texto del BOE, la representación sindical o la empresa.</div>
@@ -865,6 +1017,11 @@ document.addEventListener("click", ev=>{
   if(b.dataset.cal){ calTap(b.dataset.cal); return; }
   if(b.dataset.t){ document.querySelectorAll("#tp button").forEach(x=>x.classList.toggle("on",x===b)); document.getElementById("sheet").dataset.t=b.dataset.t; toggleHrs(b.dataset.t); return; }
   const a=b.dataset.act; if(!a) return;
+  if(a==="recibo"){ abrirRecibo(); return; }
+  if(a==="recPrint"){ try{ window.print(); }catch(e){ setStatus("Tu navegador no permite imprimir desde aquí: usa Descargar",true); } return; }
+  if(a==="recDown"){ const doc=`<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Recibo ${ymKey(cur.y,cur.m)}</title><style>${RECIBO_CSS} @page{size:A4;margin:12mm}</style></head><body>${reciboHTML(cur.y,cur.m)}</body></html>`;
+    const blob=new Blob([doc],{type:"text/html"}); const u=URL.createObjectURL(blob); const l=document.createElement("a"); l.href=u; l.download=`recibo-${ymKey(cur.y,cur.m)}.html`; document.body.appendChild(l); l.click(); l.remove(); setTimeout(()=>URL.revokeObjectURL(u),2000); setStatus("Recibo descargado"); return; }
+  if(a==="actualizar"){ setStatus("Buscando actualización…"); if(window.__buscarActualizacion) window.__buscarActualizacion(); setTimeout(()=>{ try{ caches && caches.keys().then(ks=>Promise.all(ks.map(k=>caches.delete(k)))).finally(()=>location.reload()); }catch(e){ location.reload(); } }, 1500); return; }
   if(a==="yprev"){ cur.y--; calScrolled=true; render(); window.scrollTo(0,0); return; }
   if(a==="ynext"){ cur.y++; calScrolled=true; render(); window.scrollTo(0,0); return; }
   if(a==="prev"){ cur.m--; if(cur.m<1){cur.m=12;cur.y--;} render(); }
@@ -949,5 +1106,6 @@ document.addEventListener("visibilitychange",()=>{ if(!document.hidden && autoCl
 render();
 initStore();
 </script>
+<div id="printArea"></div>
 </body>
 </html>
